@@ -1217,3 +1217,94 @@ a:hover { color: var(--accent); text-decoration: underline; }
   .dork-buttons { gap: 0.3rem; }
   .dork-btn { font-size: 0.7rem; padding: 3px 7px; }
 }
+
+/* ── SHODAN & VIRUSTOTAL STYLES ── */
+.sh-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  margin-right: 6px;
+  margin-bottom: 6px;
+  border: 1px solid;
+}
+.sh-badge-gray { color: #aaa; border-color: #555; background: #222; }
+.sh-badge-green { color: #00ff88; border-color: rgba(0, 255, 136, 0.3); background: rgba(0, 255, 136, 0.05); }
+.sh-badge-yellow { color: #ffcc00; border-color: rgba(255, 204, 0, 0.3); background: rgba(255, 204, 0, 0.05); }
+.sh-badge-red { color: #ff4444; border-color: rgba(255, 68, 68, 0.3); background: rgba(255, 68, 68, 0.05); }
+
+.sh-vuln-box {
+  margin-top: 10px;
+  padding: 8px;
+  background: rgba(255, 68, 68, 0.05);
+  border: 1px solid rgba(255, 68, 68, 0.2);
+  border-radius: 6px;
+  color: #ff4444;
+  font-size: 0.8rem;
+}
+.sh-vuln-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 2px 5px;
+  background: #ff4444;
+  color: #000;
+  border-radius: 3px;
+  margin-right: 5px;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+.sh-cpe-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #ccc;
+  margin-right: 4px;
+  margin-bottom: 4px;
+  background: #2a2a2a;
+}
+
+.vt-banner {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: bold;
+  margin-bottom: 12px;
+  border: 1px solid;
+}
+.vt-banner-green { color: #00ff88; background: rgba(0, 255, 136, 0.05); border-color: rgba(0, 255, 136, 0.2); }
+.vt-banner-yellow { color: #ffcc00; background: rgba(255, 204, 0, 0.05); border-color: rgba(255, 204, 0, 0.2); }
+.vt-banner-red { color: #ff4444; background: rgba(255, 68, 68, 0.05); border-color: rgba(255, 68, 68, 0.2); }
+
+.vt-stats-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.vt-stat-box {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+}
+.vt-cat-tag, .vt-engine-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+.vt-cat-tag { background: #333; color: #ddd; border: 1px solid #555; }
+.vt-engine-tag { background: rgba(255, 68, 68, 0.1); color: #ff4444; border: 1px solid rgba(255, 68, 68, 0.3); }
+
+/* --- AI REPORT COLORS --- */
+.type-badge { font-weight: 600; font-family: var(--font-mono); }

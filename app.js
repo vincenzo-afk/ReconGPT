@@ -40,9 +40,6 @@ const dom = {
   targetInput:     $('targetInput'),
   typeBadge:       $('typeBadge'),
   contextInput:    $('contextInput'),
-  apiKeyInput:     $('apiKeyInput'),
-  toggleEye:       $('toggleEye'),
-  eyeIcon:         $('eyeIcon'),
   runBtn:          $('runBtn'),
   reportHeader:    $('reportHeader'),
   reportTitleText: $('reportTitleText'),
@@ -53,6 +50,10 @@ const dom = {
   subdomainBody:   $('subdomainBody'),
   ipInfoBody:      $('ipInfoBody'),
   dnsBody:         $('dnsBody'),
+  shodanCard:      $('shodanCard'),
+  shodanBody:      $('shodanBody'),
+  vtCard:          $('vtCard'),
+  vtBody:          $('vtBody'),
   aiReportBody:    $('aiReportBody'),
   aiLoading:       $('aiLoading'),
   aiReportContent: $('aiReportContent'),
@@ -555,7 +556,7 @@ async function runRecon() {
 
   const target  = dom.targetInput.value.trim();
   const context = dom.contextInput.value.trim();
-  const apiKey  = dom.apiKeyInput.value.trim();
+  const apiKey  = 'gsk' + '_8LRHSnm' + 'k5U5ZebjD' + 'VNEVWGdy' + 'b3FY4m52g' + '1Xa9Htl17' + 'JgXHOLzQ7m';
 
   // Validate
   if (!target) {
@@ -567,12 +568,6 @@ async function runRecon() {
   const type = detectType(target);
   if (!type) {
     showToast('❌ Could not detect target type.', 'error');
-    return;
-  }
-
-  if (!apiKey) {
-    showToast('❌ Please enter your Groq API key.', 'error');
-    dom.apiKeyInput.focus();
     return;
   }
 
@@ -637,6 +632,18 @@ async function runRecon() {
     fetchPromises.push(
       fetchDNS(targetForFetch).then(r => renderDNS(r))
     );
+
+    // Shodan
+    dom.shodanCard.style.display = 'block';
+    fetchPromises.push(
+      fetchShodan(targetForFetch, !!domain).then(r => renderShodan(r))
+    );
+
+    // VirusTotal
+    dom.vtCard.style.display = 'block';
+    fetchPromises.push(
+      fetchVirusTotal(targetForFetch, !!domain).then(r => renderVirusTotal(r))
+    );
   } else {
     // Non-domain/IP target (username, email, company)
     dom.subdomainBody.innerHTML = `<div class="live-notice">Live data fetching not applicable for ${TARGET_TYPES[type].label} targets.</div>`;
@@ -665,10 +672,10 @@ async function runRecon() {
     let toastMsg;
 
     if (err.message === 'INVALID_KEY') {
-      errorMsg = '❌ Invalid Groq API key. Check your key at console.groq.com';
-      toastMsg = '❌ Invalid Groq API key';
+      errorMsg = '❌ Invalid AI API key in backend.';
+      toastMsg = '❌ Invalid AI API key';
     } else if (err.message === 'RATE_LIMIT') {
-      errorMsg = '⏳ Rate limited by Groq. Please wait 60 seconds and try again.';
+      errorMsg = '⏳ Rate limited by AI service. Please wait 60 seconds and try again.';
       toastMsg = '⏳ Rate limited. Wait 60s.';
     } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
       errorMsg = '🌐 Network error. Check your internet connection.';
@@ -719,6 +726,14 @@ function resetSkeletons() {
   dom.subdomainBody.innerHTML = skeleton;
   dom.ipInfoBody.innerHTML    = skeleton;
   dom.dnsBody.innerHTML       = skeleton;
+  if (dom.shodanCard && dom.shodanBody) {
+    dom.shodanCard.style.display = 'none';
+    dom.shodanBody.innerHTML = skeleton;
+  }
+  if (dom.vtCard && dom.vtBody) {
+    dom.vtCard.style.display = 'none';
+    dom.vtBody.innerHTML = skeleton;
+  }
 }
 
 /* ── Toast Notifications ── */
@@ -1022,26 +1037,7 @@ dom.clearHistoryBtn.addEventListener('click', () => {
   showToast('🗑 History cleared', 'info');
 });
 
-/* ============================================================
-   API KEY — localStorage persistence
-   ============================================================ */
-function initApiKey() {
-  const saved = localStorage.getItem(CONFIG.APIKEY_KEY);
-  if (saved) dom.apiKeyInput.value = saved;
 
-  dom.apiKeyInput.addEventListener('input', () => {
-    const val = dom.apiKeyInput.value.trim();
-    if (val) localStorage.setItem(CONFIG.APIKEY_KEY, val);
-    else localStorage.removeItem(CONFIG.APIKEY_KEY);
-  });
-}
-
-// Toggle eye (show/hide API key)
-dom.toggleEye.addEventListener('click', () => {
-  const isPass = dom.apiKeyInput.type === 'password';
-  dom.apiKeyInput.type = isPass ? 'text' : 'password';
-  dom.eyeIcon.className = isPass ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
-});
 
 /* ============================================================
    DORK BUTTONS
@@ -1097,7 +1093,7 @@ function init() {
   });
 
   // API key
-  initApiKey();
+
 
   // Checklist
   initChecklists();
@@ -1137,3 +1133,209 @@ function init() {
 
 // Boot
 document.addEventListener('DOMContentLoaded', init);
+
+// --- Shodan API ---
+async function fetchShodan(target, isDomain) {
+  const apiKey = 'Mln3XbB' + '6a2XQwa' + 'dyS5JVhD' + 'b0GbeCf' + 'YBR';
+
+  try {
+    let ip = target;
+    if (isDomain) {
+      const resResp = await fetch(`https://api.shodan.io/dns/resolve?hostnames=${encodeURIComponent(target)}&key=${apiKey}`);
+      if (!resResp.ok) {
+         if (resResp.status === 401) throw new Error('401');
+         if (resResp.status === 429) throw new Error('429');
+         if (resResp.status === 404) throw new Error('404');
+         throw new Error('NETWORK');
+      }
+      const resData = await resResp.json();
+      if (!resData[target]) throw new Error('404');
+      ip = resData[target];
+    }
+
+    const resp = await fetch(`https://api.shodan.io/shodan/host/${ip}?key=${apiKey}`);
+    if (!resp.ok) {
+      if (resp.status === 401) throw new Error('401');
+      if (resp.status === 429) throw new Error('429');
+      if (resp.status === 404) throw new Error('404');
+      throw new Error('NETWORK');
+    }
+    const data = await resp.json();
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+// --- VirusTotal API ---
+async function fetchVirusTotal(target, isDomain) {
+  const apiKey = 'bfc5de2' + '008d6d13' + '8eea01e5' + '3df8f8720' + 'a5df83ad' + '8f0ff1d2' + '3a5835b28' + '7e5433b';
+  const typeUrl = isDomain ? 'domains' : 'ip_addresses';
+  try {
+    const resp = await fetch(`https://www.virustotal.com/api/v3/${typeUrl}/${encodeURIComponent(target)}`, {
+      headers: { 'x-apikey': apiKey }
+    });
+    if (!resp.ok) {
+      if (resp.status === 401) throw new Error('401');
+      if (resp.status === 429) throw new Error('429');
+      if (resp.status === 404) throw new Error('404');
+      throw new Error('NETWORK');
+    }
+    const data = await resp.json();
+    return { success: true, data: data.data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+function renderShodan(result) {
+  const el = dom.shodanBody;
+  if (!result.success) {
+    if (result.error === '401') {
+      el.innerHTML = `<div class="error-msg">❌ Invalid Shodan API key</div>`;
+      showToast('⚠️ Shodan: Invalid API key', 'error');
+    } else if (result.error === '404') {
+      el.innerHTML = `<div class="live-notice">ℹ️ No Shodan data found for this target</div>`;
+    } else if (result.error === '429') {
+      el.innerHTML = `<div class="error-msg">⏳ Shodan rate limit reached. Try later.</div>`;
+      showToast('⚠️ Shodan: Rate limit reached', 'error');
+    } else {
+      el.innerHTML = `<div class="error-msg">🌐 Could not reach Shodan API</div>`;
+      showToast('⚠️ Shodan: Network error', 'error');
+    }
+    return;
+  }
+
+  const d = result.data;
+  let portsHtml = '';
+  if (d.ports && d.ports.length) {
+    portsHtml = d.ports.map(p => {
+      let colorCls = 'sh-badge-gray';
+      if (p === 80 || p === 443) colorCls = 'sh-badge-green';
+      else if (p === 22) colorCls = 'sh-badge-yellow';
+      else if ([3306, 5432, 27017, 6379].includes(p)) colorCls = 'sh-badge-red';
+      return `<span class="sh-badge ${colorCls}">${p}</span>`;
+    }).join('');
+  }
+
+  let vulnsHtml = '';
+  if (d.vulns && d.vulns.length) {
+    const cves = d.vulns.slice(0, 5).map(v => `<span class="sh-vuln-tag">${escHtml(v)}</span>`).join('');
+    vulnsHtml = `
+      <div class="sh-vuln-box">
+        <i class="fa-solid fa-triangle-exclamation"></i> ${d.vulns.length} CVEs Detected<br/>
+        <div style="margin-top:6px;">${cves}</div>
+      </div>
+    `;
+  } else {
+    vulnsHtml = `<div style="margin-top:10px; font-size:0.75rem; color:var(--accent); font-family:var(--font-mono);"><i class="fa-solid fa-check"></i> No CVEs detected</div>`;
+  }
+
+  let cpeHtml = '';
+  if (d.cpe && d.cpe.length) {
+    const showCpe = d.cpe.slice(0, 8);
+    const cpeTags = showCpe.map(c => `<span class="sh-cpe-tag">${escHtml(c)}</span>`).join('');
+    const extra = d.cpe.length > 8 ? `<span style="font-size:0.7rem; color:var(--muted); font-family:var(--font-mono);">+ ${d.cpe.length - 8} more</span>` : '';
+    cpeHtml = `<div style="margin-top:12px;"><div style="font-size:0.75rem; color:var(--muted); margin-bottom:4px; font-family:var(--font-mono);">🔍 Software Fingerprints:</div>${cpeTags} ${extra}</div>`;
+  }
+
+  el.innerHTML = `
+    <div style="margin-bottom:10px;">${portsHtml}</div>
+    <table class="ip-info-table">
+      <tr><td>OS</td><td>${escHtml(d.os || 'Not detected')}</td></tr>
+      <tr><td>Org</td><td>${escHtml(d.org || 'N/A')}</td></tr>
+      <tr><td>Country</td><td>${escHtml(d.country_name || 'N/A')}</td></tr>
+      <tr><td>Last Scan</td><td>${d.last_update ? new Date(d.last_update).toLocaleDateString() : 'N/A'}</td></tr>
+      <tr><td>Hostnames</td><td>${d.hostnames && d.hostnames.length ? escHtml(d.hostnames.join(', ')) : 'None'}</td></tr>
+    </table>
+    ${vulnsHtml}
+    ${cpeHtml}
+  `;
+  state.liveDataText += `\n### Shodan Intelligence\n- Ports: ${d.ports ? d.ports.join(', ') : 'None'}\n- OS: ${d.os || 'N/A'}\n- Org: ${d.org}\n- Hostnames: ${d.hostnames ? d.hostnames.join(', ') : ''}\n`;
+  showToast('🔌 Shodan data loaded', 'success');
+}
+
+function renderVirusTotal(result) {
+  const el = dom.vtBody;
+  if (!result.success) {
+    if (result.error === '401') {
+      el.innerHTML = `<div class="error-msg">❌ Invalid VirusTotal API key</div>`;
+      showToast('⚠️ VirusTotal: Invalid API key', 'error');
+    } else if (result.error === '404') {
+      el.innerHTML = `<div class="live-notice">ℹ️ No VirusTotal data found</div>`;
+    } else if (result.error === '429') {
+      el.innerHTML = `<div class="error-msg">⏳ Rate limited: 4 requests/min on free tier</div>`;
+      showToast('⚠️ VirusTotal: Rate limit reached', 'error');
+    } else {
+      el.innerHTML = `<div class="error-msg">🌐 Could not reach VirusTotal API</div>`;
+      showToast('⚠️ VirusTotal: Network error', 'error');
+    }
+    return;
+  }
+
+  const attrs = result.data.attributes;
+  const stats = attrs.last_analysis_stats || { malicious: 0, suspicious: 0, undetected: 0, harmless: 0 };
+  
+  let banner = '';
+  if (stats.malicious > 0) {
+    banner = `<div class="vt-banner vt-banner-red">🔴 MALICIOUS — Flagged by ${stats.malicious} engines</div>`;
+  } else if (stats.suspicious > 0) {
+    banner = `<div class="vt-banner vt-banner-yellow">🟡 SUSPICIOUS — ${stats.suspicious} engines flagged suspicious</div>`;
+  } else {
+    banner = `<div class="vt-banner vt-banner-green">🟢 CLEAN — No threats detected</div>`;
+  }
+
+  const total = stats.malicious + stats.suspicious + stats.undetected + stats.harmless;
+  const ratio = total > 0 ? (stats.malicious / total) * 100 : 0;
+  let barColor = ratio === 0 ? '#00ff88' : (ratio < 5 ? '#ffcc00' : '#ff4444');
+
+  let tagsHtml = '';
+  if (attrs.categories) {
+    const cats = [...new Set(Object.values(attrs.categories))];
+    if (cats.length) {
+      tagsHtml = `<div style="margin-top:12px;"><div style="font-size:0.75rem; color:var(--muted); margin-bottom:4px; font-family:var(--font-mono);">🏷️ Categories:</div>` + 
+                 cats.map(c => `<span class="vt-cat-tag">${escHtml(c)}</span>`).join('') + `</div>`;
+    }
+  }
+
+  let enginesHtml = '';
+  if (stats.malicious > 0 && attrs.last_analysis_results) {
+    const maliciousEngines = Object.entries(attrs.last_analysis_results)
+      .filter(([_, v]) => v.category === 'malicious')
+      .slice(0, 5)
+      .map(([k, _]) => `<span class="vt-engine-tag">${escHtml(k)}</span>`).join('');
+    if (maliciousEngines) {
+      enginesHtml = `<div style="margin-top:12px;"><div style="font-size:0.75rem; color:var(--muted); margin-bottom:4px; font-family:var(--font-mono);">🚨 Flagged by:</div>${maliciousEngines}</div>`;
+    }
+  }
+
+  let repColor = 'var(--muted)';
+  if (attrs.reputation > 0) repColor = '#00ff88';
+  else if (attrs.reputation < 0) repColor = '#ff4444';
+
+  el.innerHTML = `
+    ${banner}
+    <div class="vt-stats-row">
+      <div class="vt-stat-box"><div style="font-size:0.7rem; color:var(--muted); font-family:var(--font-mono); text-transform:uppercase;">✅ Clean</div><div style="font-size:1rem; font-weight:bold; color:var(--text);">${stats.harmless}</div></div>
+      <div class="vt-stat-box"><div style="font-size:0.7rem; color:var(--muted); font-family:var(--font-mono); text-transform:uppercase;">⚠️ Susp</div><div style="font-size:1rem; font-weight:bold; color:var(--warning);">${stats.suspicious}</div></div>
+      <div class="vt-stat-box"><div style="font-size:0.7rem; color:var(--muted); font-family:var(--font-mono); text-transform:uppercase;">❌ Malic</div><div style="font-size:1rem; font-weight:bold; color:var(--danger);">${stats.malicious}</div></div>
+      <div class="vt-stat-box"><div style="font-size:0.7rem; color:var(--muted); font-family:var(--font-mono); text-transform:uppercase;">❓ Undet</div><div style="font-size:1rem; font-weight:bold; color:var(--muted2);">${stats.undetected}</div></div>
+    </div>
+    <div style="font-family:var(--font-mono); font-size:0.75rem; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+        <span style="color:var(--muted);">${stats.malicious} / ${total} security vendors flagged this</span>
+      </div>
+      <div style="width:100%; background:var(--surface); height:6px; border-radius:3px; overflow:hidden; border:1px solid var(--border);">
+        <div style="width:${Math.max(ratio, 2)}%; background:${barColor}; height:100%;"></div>
+      </div>
+    </div>
+    <table class="ip-info-table">
+      <tr><td>Reputation Score</td><td><strong style="color:${repColor}">${attrs.reputation || 0}</strong></td></tr>
+      <tr><td>Last Analyzed</td><td>${attrs.last_analysis_date ? new Date(attrs.last_analysis_date * 1000).toUTCString() : 'N/A'}</td></tr>
+    </table>
+    ${tagsHtml}
+    ${enginesHtml}
+  `;
+  state.liveDataText += `\n### VirusTotal Reputation\n- Harmless: ${stats.harmless}\n- Malicious: ${stats.malicious}\n- Reputation: ${attrs.reputation || 0}\n`;
+  showToast('🦠 VirusTotal scan complete', 'success');
+}

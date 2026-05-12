@@ -74,25 +74,7 @@
           ></textarea>
         </div>
 
-        <!-- API Key Input -->
-        <div class="input-group">
-          <label class="input-label">Groq API Key</label>
-          <div class="api-key-wrapper">
-            <input
-              type="password"
-              id="apiKeyInput"
-              class="api-input"
-              placeholder="Enter your Groq API Key"
-              autocomplete="off"
-            />
-            <button class="toggle-eye" id="toggleEye" title="Show/hide key">
-              <i class="fa-solid fa-eye" id="eyeIcon"></i>
-            </button>
-          </div>
-          <a href="https://console.groq.com" target="_blank" class="api-link">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i> Get free key at console.groq.com
-          </a>
-        </div>
+
 
         <!-- Run Button -->
         <button class="run-btn" id="runBtn">
@@ -412,9 +394,37 @@
           </div>
         </div>
 
+        <!-- Shodan Card -->
+        <div class="live-card full-width" id="shodanCard" style="display:none;">
+          <div class="live-card-title">
+            <i class="fa-solid fa-plug"></i> Shodan Intelligence <span class="live-card-source">(shodan.io)</span>
+          </div>
+          <div class="live-card-body" id="shodanBody">
+            <div class="skeleton-loader">
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VirusTotal Card -->
+        <div class="live-card full-width" id="vtCard" style="display:none;">
+          <div class="live-card-title">
+            <i class="fa-solid fa-virus"></i> VirusTotal Reputation <span class="live-card-source">(virustotal.com)</span>
+          </div>
+          <div class="live-card-body" id="vtBody">
+            <div class="skeleton-loader">
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- AI REPORT SECTION -->
         <div class="section-title" style="margin-top:2rem;">
-          <i class="fa-solid fa-robot"></i> AI Analysis <span class="section-badge">Groq LLaMA 3.3 70B</span>
+          <i class="fa-solid fa-robot"></i> AI Analysis <span class="section-badge">Advanced AI Model</span>
         </div>
 
         <div class="ai-report-card">
@@ -423,7 +433,7 @@
               <div class="ai-loading-dots">
                 <span></span><span></span><span></span>
               </div>
-              <span>Connecting to Groq AI...</span>
+              <span>Connecting to AI...</span>
             </div>
             <div id="aiReportContent"></div>
             <span class="typing-cursor" id="typingCursor" style="display:none;">▊</span>
