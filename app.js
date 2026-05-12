@@ -211,8 +211,9 @@ Be specific, technical, and actionable. Use real tool names, real CLI commands, 
 Generate a comprehensive, professional recon report for the IP address: ${target}.${contextNote}
 
 CRITICAL RULES (follow exactly):
-1. Tag every data point: ✅ CONFIRMED (from live API in context), ⚠️ UNCONFIRMED (inferred), ❌ UNAVAILABLE (API not reached)
-2. THREAT RATING must be evidence-based only:
+1. Tag every data point: ✅ CONFIRMED (from live API in context), ⚠️ UNCONFIRMED (inferred or AI-suggested), ❌ UNAVAILABLE (API not reached)
+2. Use ⚠️ UNCONFIRMED for inferred details like "likely a CDN IP based on ISP" or "Fastly association suggests content delivery"
+3. THREAT RATING must be evidence-based only:
    - 0 confirmed threats = LOW
    - 1-2 unverified indicators = LOW-MEDIUM
    - Active blacklist hit = MEDIUM
@@ -242,7 +243,7 @@ Step-by-step passive intelligence gathering using public databases and routing r
 Port scanning, banner grabbing, OS detection (authorized targets only).
 
 ## 🚨 Threat Intelligence Checks
-Blacklist lookup, abuse reports, malware association, botnet membership. Use ONLY confirmed data from context. Tag all findings.
+Blacklist lookup, abuse reports, malware association, botnet membership. Use ONLY confirmed data from context (e.g., AbuseIPDB score and reports if available). Tag all findings. Do not suggest CLI commands if live API data is present.
 
 ## 🔗 Pivot Opportunities
 Related IPs, domains on same ASN, hosting neighbors, historical DNS.
@@ -252,6 +253,9 @@ Key open services, exposed management interfaces, risky configurations — confi
 
 ## 🔐 Risk Level Assessment
 Must cite specific confirmed findings. Use the evidence-based scoring above.
+
+## 🔄 Reverse Resolution
+PTR records from live DNS data in context. Tag ✅ CONFIRMED.
 
 Be specific with search dorks, exact commands, and real investigation techniques.`,
 
@@ -558,7 +562,9 @@ function renderReverseDNS(result, ip) {
     </div>
   `;
   state.liveDataText += `\n### Reverse DNS ✅ CONFIRMED\nPTR: ${ptr}\n`;
-  state.reconMeta.fetchedSources.push('ReverseDNS');
+  if (!state.reconMeta.fetchedSources.includes('ReverseDNS')) {
+    state.reconMeta.fetchedSources.push('ReverseDNS');
+  }
 }
 
 function renderHIBPBreach(result, email) {
@@ -2043,9 +2049,9 @@ function executeExtendedModules(domain, target, type) {
   if (type === 'IP') {
     dom.modNetGeo.style.display = 'block'; p.push(fetchModNetGeo(target).then(renderModNetGeo));
     dom.modNetRouting.style.display = 'block'; p.push(fetchModNetRouting(target).then(renderModNetRouting));
-    dom.modReverseRes.style.display = 'block'; p.push(fetchModReverseRes(target).then(renderModReverseRes));
+    // Reverse DNS handled in main fetch
     dom.modNetPath.style.display = 'block'; p.push(fetchModNetPath(target).then(renderModNetPath));
-    if (dom.modAbuseIPDB) { dom.modAbuseIPDB.style.display = 'block'; p.push(fetchAbuseIPDB(target).then(renderAbuseIPDB)); }
+    // AbuseIPDB handled in main fetch
   }
   if (type === 'USERNAME' || type === 'EMAIL') {
     let u = target.split('@')[0];
