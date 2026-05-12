@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReconGPT — AI-Powered OSINT Assistant</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- marked.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- SCANLINE OVERLAY -->
+  <div class="scanline-overlay"></div>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-left">
+      <span class="nav-logo">⚡ ReconGPT</span>
+      <span class="nav-status" id="navStatus">Initializing...</span>
+    </div>
+    <div class="navbar-right">
+      <span class="nav-tagline">AI-Powered OSINT Assistant</span>
+    </div>
+  </nav>
+
+  <!-- MAIN LAYOUT -->
+  <div class="main-layout">
+
+    <!-- ===== LEFT COLUMN ===== -->
+    <div class="left-col">
+
+      <!-- TARGET INPUT CARD -->
+      <div class="card" id="inputCard">
+        <div class="card-title">
+          <i class="fa-solid fa-crosshairs"></i> Target Input
+        </div>
+
+        <!-- Main Target Input -->
+        <div class="input-group">
+          <input
+            type="text"
+            id="targetInput"
+            class="main-input"
+            placeholder="Enter domain, IP, username or email..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <div class="type-badge-row">
+            <span class="type-badge" id="typeBadge">
+              <i class="fa-solid fa-circle-question"></i> Enter a target above
+            </span>
+          </div>
+        </div>
+
+        <!-- Context Input -->
+        <div class="input-group">
+          <label class="input-label">Context <span class="optional">(optional)</span></label>
+          <textarea
+            id="contextInput"
+            class="context-input"
+            rows="2"
+            placeholder="What are you specifically looking for? (e.g. email addresses, subdomains, social accounts...)"
+          ></textarea>
+        </div>
+
+        <!-- API Key Input -->
+        <div class="input-group">
+          <label class="input-label">Groq API Key</label>
+          <div class="api-key-wrapper">
+            <input
+              type="password"
+              id="apiKeyInput"
+              class="api-input"
+              placeholder="Enter your Groq API Key"
+              autocomplete="off"
+            />
+            <button class="toggle-eye" id="toggleEye" title="Show/hide key">
+              <i class="fa-solid fa-eye" id="eyeIcon"></i>
+            </button>
+          </div>
+          <a href="https://console.groq.com" target="_blank" class="api-link">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Get free key at console.groq.com
+          </a>
+        </div>
+
+        <!-- Run Button -->
+        <button class="run-btn" id="runBtn">
+          <i class="fa-solid fa-bolt"></i> Run ReconGPT
+        </button>
+
+        <!-- Quick Dork Buttons -->
+        <div class="dork-section">
+          <span class="dork-label">Quick Google Dorks:</span>
+          <div class="dork-buttons">
+            <button class="dork-btn" data-dork="site:">site:</button>
+            <button class="dork-btn" data-dork="inurl:">inurl:</button>
+            <button class="dork-btn" data-dork="filetype:">filetype:</button>
+            <button class="dork-btn" data-dork="intitle:">intitle:</button>
+            <button class="dork-btn" data-dork="cache:">cache:</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHECKLISTS CARD -->
+      <div class="card" id="checklistCard">
+        <div class="card-title">
+          <i class="fa-solid fa-list-check"></i> OSINT Checklists
+        </div>
+
+        <!-- Subdomain Hunting -->
+        <div class="accordion-item">
+          <div class="accordion-header" data-section="subdomain">
+            <span><i class="fa-solid fa-chevron-right accordion-icon"></i> Subdomain Hunting</span>
+            <span class="progress-badge" id="prog-subdomain">0 / 8</span>
+          </div>
+          <div class="accordion-body" id="body-subdomain">
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-amass" data-section="subdomain" />
+              <label for="chk-amass"><a href="https://amass.app" target="_blank">Amass</a> — Active/passive subdomain enumeration</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-subfinder" data-section="subdomain" />
+              <label for="chk-subfinder"><a href="https://github.com/projectdiscovery/subfinder" target="_blank">Subfinder</a> — Fast passive subdomain enum</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-crtsh" data-section="subdomain" />
+              <label for="chk-crtsh"><a href="https://crt.sh" target="_blank">crt.sh</a> — Certificate transparency logs</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-dnsdumpster" data-section="subdomain" />
+              <label for="chk-dnsdumpster"><a href="https://dnsdumpster.com" target="_blank">DNSdumpster</a> — DNS recon map</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-virustotal" data-section="subdomain" />
+              <label for="chk-virustotal"><a href="https://virustotal.com/gui/domain" target="_blank">VirusTotal</a> — Domain intelligence</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-shodan1" data-section="subdomain" />
+              <label for="chk-shodan1"><a href="https://shodan.io" target="_blank">Shodan</a> — Internet-connected devices</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-sectrails" data-section="subdomain" />
+              <label for="chk-sectrails"><a href="https://securitytrails.com" target="_blank">SecurityTrails</a> — DNS history & subdomains</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-harvester1" data-section="subdomain" />
+              <label for="chk-harvester1"><a href="https://github.com/laramies/theHarvester" target="_blank">theHarvester</a> — Multi-source recon tool</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tech Fingerprinting -->
+        <div class="accordion-item">
+          <div class="accordion-header" data-section="tech">
+            <span><i class="fa-solid fa-chevron-right accordion-icon"></i> Tech Fingerprinting</span>
+            <span class="progress-badge" id="prog-tech">0 / 6</span>
+          </div>
+          <div class="accordion-body" id="body-tech">
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-wappalyzer" data-section="tech" />
+              <label for="chk-wappalyzer"><a href="https://wappalyzer.com" target="_blank">Wappalyzer</a> — Technology profiler</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-builtwith" data-section="tech" />
+              <label for="chk-builtwith"><a href="https://builtwith.com" target="_blank">BuiltWith</a> — Tech stack lookup</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-whatweb" data-section="tech" />
+              <label for="chk-whatweb"><a href="https://github.com/urbanadventurer/WhatWeb" target="_blank">WhatWeb</a> — Web app fingerprinter</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-nikto" data-section="tech" />
+              <label for="chk-nikto"><a href="https://github.com/sullo/nikto" target="_blank">Nikto</a> — Web server scanner</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-nmap" data-section="tech" />
+              <label for="chk-nmap"><a href="https://nmap.org" target="_blank">nmap -sV -sC</a> — Service/version detection</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-censys1" data-section="tech" />
+              <label for="chk-censys1"><a href="https://search.censys.io" target="_blank">Censys</a> — Internet scan database</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Social Media OSINT -->
+        <div class="accordion-item">
+          <div class="accordion-header" data-section="social">
+            <span><i class="fa-solid fa-chevron-right accordion-icon"></i> Social Media OSINT</span>
+            <span class="progress-badge" id="prog-social">0 / 5</span>
+          </div>
+          <div class="accordion-body" id="body-social">
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-sherlock" data-section="social" />
+              <label for="chk-sherlock"><a href="https://github.com/sherlock-project/sherlock" target="_blank">Sherlock</a> — Username across 300+ sites</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-wmn" data-section="social" />
+              <label for="chk-wmn"><a href="https://whatsmyname.app" target="_blank">WhatsMyName</a> — Username enumeration</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-maltego" data-section="social" />
+              <label for="chk-maltego"><a href="https://maltego.com" target="_blank">Maltego</a> — Link analysis & visualization</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-socialsearch" data-section="social" />
+              <label for="chk-socialsearch"><a href="https://social-searcher.com" target="_blank">Social Searcher</a> — Real-time social monitor</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-googledorks" data-section="social" />
+              <label for="chk-googledorks">Google Dorks — site:linkedin.com/in "name"</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Email Harvesting -->
+        <div class="accordion-item">
+          <div class="accordion-header" data-section="email">
+            <span><i class="fa-solid fa-chevron-right accordion-icon"></i> Email Harvesting</span>
+            <span class="progress-badge" id="prog-email">0 / 5</span>
+          </div>
+          <div class="accordion-body" id="body-email">
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-harvester2" data-section="email" />
+              <label for="chk-harvester2"><a href="https://github.com/laramies/theHarvester" target="_blank">theHarvester</a> — Email harvesting mode</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-hunter" data-section="email" />
+              <label for="chk-hunter"><a href="https://hunter.io" target="_blank">Hunter.io</a> — Email finder & verifier</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-phonebook" data-section="email" />
+              <label for="chk-phonebook"><a href="https://phonebook.cz" target="_blank">Phonebook.cz</a> — Email intelligence</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-hibp" data-section="email" />
+              <label for="chk-hibp"><a href="https://haveibeenpwned.com" target="_blank">HaveIBeenPwned</a> — Breach check</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-breach" data-section="email" />
+              <label for="chk-breach"><a href="https://breachdirectory.org" target="_blank">Breach Directory</a> — Credential database</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- IP & Network -->
+        <div class="accordion-item">
+          <div class="accordion-header" data-section="network">
+            <span><i class="fa-solid fa-chevron-right accordion-icon"></i> IP &amp; Network</span>
+            <span class="progress-badge" id="prog-network">0 / 6</span>
+          </div>
+          <div class="accordion-body" id="body-network">
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-shodan2" data-section="network" />
+              <label for="chk-shodan2"><a href="https://shodan.io" target="_blank">Shodan</a> — Device &amp; service discovery</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-censys2" data-section="network" />
+              <label for="chk-censys2"><a href="https://search.censys.io" target="_blank">Censys</a> — Internet scan data</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-ipapi" data-section="network" />
+              <label for="chk-ipapi"><a href="https://ip-api.com" target="_blank">ip-api.com</a> — IP geolocation</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-abuseipdb" data-section="network" />
+              <label for="chk-abuseipdb"><a href="https://abuseipdb.com" target="_blank">AbuseIPDB</a> — IP reputation check</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-bgphe" data-section="network" />
+              <label for="chk-bgphe"><a href="https://bgp.he.net" target="_blank">BGP.he.net</a> — ASN &amp; BGP data</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" class="check-box" id="chk-viewdns" data-section="network" />
+              <label for="chk-viewdns"><a href="https://viewdns.info" target="_blank">ViewDNS</a> — DNS tools suite</label>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- END CHECKLISTS -->
+
+      <!-- SESSION HISTORY CARD -->
+      <div class="card" id="historyCard">
+        <div class="card-title-row">
+          <div class="card-title">
+            <i class="fa-solid fa-clock-rotate-left"></i> Recent Scans
+          </div>
+          <button class="clear-btn" id="clearHistoryBtn" title="Clear history">
+            <i class="fa-solid fa-trash"></i> Clear
+          </button>
+        </div>
+        <div id="historyList">
+          <div class="history-empty">
+            <i class="fa-solid fa-radar"></i>
+            <p>No scans yet. Run your first recon above.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- END LEFT COLUMN -->
+
+    <!-- ===== RIGHT COLUMN ===== -->
+    <div class="right-col">
+
+      <!-- REPORT HEADER (hidden until report exists) -->
+      <div class="report-header" id="reportHeader" style="display:none;">
+        <div class="report-title-row">
+          <div class="report-title">
+            <i class="fa-solid fa-clipboard-list"></i>
+            <span id="reportTitleText">Recon Report</span>
+          </div>
+          <div class="report-meta">
+            <span class="type-badge" id="reportTypeBadge"></span>
+            <span class="report-timestamp" id="reportTimestamp"></span>
+          </div>
+        </div>
+        <!-- Export Toolbar -->
+        <div class="export-toolbar">
+          <button class="export-btn" id="btnCopy" title="Copy to clipboard">
+            <i class="fa-solid fa-clipboard"></i> Copy
+          </button>
+          <button class="export-btn" id="btnMd" title="Download Markdown">
+            <i class="fa-solid fa-file-arrow-down"></i> .md
+          </button>
+          <button class="export-btn" id="btnHtml" title="Download HTML">
+            <i class="fa-solid fa-file-code"></i> HTML
+          </button>
+          <button class="export-btn" id="btnPrint" title="Print report">
+            <i class="fa-solid fa-print"></i> Print
+          </button>
+        </div>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">
+          <i class="fa-solid fa-satellite-dish"></i>
+        </div>
+        <h2>ReconGPT Ready</h2>
+        <p>Enter a target on the left and press <strong>Run ReconGPT</strong> to begin your OSINT analysis.</p>
+        <div class="empty-hints">
+          <span class="hint-chip"><i class="fa-solid fa-globe"></i> Domains</span>
+          <span class="hint-chip"><i class="fa-solid fa-network-wired"></i> IP Addresses</span>
+          <span class="hint-chip"><i class="fa-solid fa-user"></i> Usernames</span>
+          <span class="hint-chip"><i class="fa-solid fa-envelope"></i> Emails</span>
+          <span class="hint-chip"><i class="fa-solid fa-building"></i> Companies</span>
+        </div>
+      </div>
+
+      <!-- REPORT AREA -->
+      <div class="report-area" id="reportArea" style="display:none;">
+
+        <!-- LIVE DATA SECTION -->
+        <div class="section-title">
+          <i class="fa-solid fa-bolt"></i> Live Data <span class="section-badge">Real-Time Fetch</span>
+        </div>
+
+        <div class="live-cards-row">
+          <!-- Subdomains Card -->
+          <div class="live-card" id="subdomainCard">
+            <div class="live-card-title">
+              <i class="fa-solid fa-globe"></i> Subdomains <span class="live-card-source">(crt.sh)</span>
+            </div>
+            <div class="live-card-body" id="subdomainBody">
+              <div class="skeleton-loader">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- IP Info Card -->
+          <div class="live-card" id="ipInfoCard">
+            <div class="live-card-title">
+              <i class="fa-solid fa-location-dot"></i> IP Info <span class="live-card-source">(ip-api.com)</span>
+            </div>
+            <div class="live-card-body" id="ipInfoBody">
+              <div class="skeleton-loader">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DNS Records Card -->
+        <div class="live-card full-width" id="dnsCard">
+          <div class="live-card-title">
+            <i class="fa-solid fa-magnifying-glass"></i> DNS Records <span class="live-card-source">(HackerTarget)</span>
+          </div>
+          <div class="live-card-body" id="dnsBody">
+            <div class="skeleton-loader">
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI REPORT SECTION -->
+        <div class="section-title" style="margin-top:2rem;">
+          <i class="fa-solid fa-robot"></i> AI Analysis <span class="section-badge">Groq LLaMA 3.3 70B</span>
+        </div>
+
+        <div class="ai-report-card">
+          <div class="ai-report-body" id="aiReportBody">
+            <div class="ai-loading" id="aiLoading">
+              <div class="ai-loading-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <span>Connecting to Groq AI...</span>
+            </div>
+            <div id="aiReportContent"></div>
+            <span class="typing-cursor" id="typingCursor" style="display:none;">▊</span>
+          </div>
+        </div>
+
+      </div>
+      <!-- END REPORT AREA -->
+
+    </div>
+    <!-- END RIGHT COLUMN -->
+
+  </div>
+  <!-- END MAIN LAYOUT -->
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
