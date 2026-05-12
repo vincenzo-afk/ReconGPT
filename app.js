@@ -28,6 +28,7 @@ const state = {
   currentReport:   '',   // raw markdown AI text
   liveDataText:    '',   // stringified live data for export
   isRunning:       false,
+  reconMeta:       { fetchedSources: [], failedSources: [], startTime: null },
 };
 
 /* ============================================================
@@ -89,6 +90,10 @@ const dom = {
   modGoogleBody: $('modGoogleBody'),
   modInfraMap: $('modInfraMap'),
   modInfraMapBody: $('modInfraMapBody'),
+  modAbuseIPDB: $('modAbuseIPDB'),
+  modAbuseIPDBBody: $('modAbuseIPDBBody'),
+  modEmailDNS: $('modEmailDNS'),
+  modEmailDNSBody: $('modEmailDNSBody'),
   runBtn:          $('runBtn'),
   reportHeader:    $('reportHeader'),
   reportTitleText: $('reportTitleText'),
@@ -204,13 +209,25 @@ Be specific, technical, and actionable. Use real tool names, real CLI commands, 
 
     IP: `You are an expert OSINT analyst and network security researcher.
 Generate a comprehensive, professional recon report for the IP address: ${target}.${contextNote}
+
+CRITICAL RULES (follow exactly):
+1. Tag every data point: ✅ CONFIRMED (from live API in context), ⚠️ UNCONFIRMED (inferred), ❌ UNAVAILABLE (API not reached)
+2. THREAT RATING must be evidence-based only:
+   - 0 confirmed threats = LOW
+   - 1-2 unverified indicators = LOW-MEDIUM
+   - Active blacklist hit = MEDIUM
+   - Confirmed malware/botnet = HIGH
+   - Confirmed breach + credentials = CRITICAL
+   Public infrastructure IPs (e.g. 1.1.1.1, 8.8.8.8, 9.9.9.9) should NEVER be rated above LOW unless a confirmed threat is present.
+3. Only discuss what data is available in the context below.
+
 Structure your response with these exact markdown sections:
 
 ## 🎯 Target Summary
-Overview of this IP — likely hosting type, region, reputation.
+Overview of this IP — likely hosting type, region, reputation. Tag each claim.
 
 ## 🌍 Geolocation & Network Intel
-How to determine the exact geolocation, ISP, ASN, and hosting provider.
+Confirmed geolocation, ISP, ASN from live context data. Tag each field ✅ or ⚠️.
 
 ## 🔌 Port & Service Scanning
 Exact nmap commands, common ports to check, service fingerprinting techniques.
@@ -225,16 +242,16 @@ Step-by-step passive intelligence gathering using public databases and routing r
 Port scanning, banner grabbing, OS detection (authorized targets only).
 
 ## 🚨 Threat Intelligence Checks
-Blacklist lookup, abuse reports, malware association, botnet membership.
+Blacklist lookup, abuse reports, malware association, botnet membership. Use ONLY confirmed data from context. Tag all findings.
 
 ## 🔗 Pivot Opportunities
 Related IPs, domains on same ASN, hosting neighbors, historical DNS.
 
 ## ⚠️ Attack Surface Summary
-Key open services, exposed management interfaces, risky configurations.
+Key open services, exposed management interfaces, risky configurations — confirmed only.
 
 ## 🔐 Risk Level Assessment
-Threat rating, notable findings, recommended next steps.
+Must cite specific confirmed findings. Use the evidence-based scoring above.
 
 Be specific with search dorks, exact commands, and real investigation techniques.`,
 
@@ -276,39 +293,54 @@ Use exact tool commands (e.g. python3 sherlock.py ${target}), real URLs, and spe
 
     EMAIL: `You are an expert OSINT analyst specializing in email intelligence.
 Generate a comprehensive, professional recon report for the email: ${target}.${contextNote}
+
+CRITICAL RULES (follow exactly):
+1. NEVER claim the email "has been compromised" or "was found in a breach" unless HIBP API data is explicitly present in the context below. If no HIBP data is in context, write: "⚠️ Breach check skipped — HIBP API key not configured. Run manually: curl -H 'hibp-api-key: YOUR_KEY' https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(target)}"
+2. Tag every data point: ✅ CONFIRMED (from live API), ⚠️ UNCONFIRMED (inferred), ❌ UNAVAILABLE (API not reached)
+3. The sections Identity Correlation, Social Engineering Surface, and Email Pattern Analysis MUST each contain completely unique, non-overlapping content.
+4. Use email-specific OSINT tools ONLY — never suggest nmap or port scanners for email targets.
+5. Threat rating must be evidence-based: 0 threats=LOW, 1-2 unverified=LOW-MEDIUM, blacklist hit=MEDIUM, confirmed malware=HIGH, confirmed breach+credentials=CRITICAL.
+
 Structure your response with these exact markdown sections:
 
 ## 🎯 Target Summary
-Domain analysis, likely organization, email provider, format patterns.
+Domain analysis (${target.split('@')[1] || 'unknown'}), likely organization, email provider type. Tag all claims.
 
 ## 🔑 Breach & Leak Intelligence
-How to check HaveIBeenPwned, Breach Directory, DeHashed — what to look for.
+IF HIBP data is present in context: show breach details tagged ✅ CONFIRMED.
+IF NOT: "⚠️ Breach check skipped — HIBP API key not configured.\nManual check: curl -H 'hibp-api-key: YOUR_KEY' https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(target)}"
 
 ## 🌐 Domain Intelligence
-WHOIS, MX records, SPF/DKIM/DMARC analysis, hosting provider.
+MX records, SPF/DKIM/DMARC status from live DNS context data. Tag each record ✅ CONFIRMED or ❌ UNAVAILABLE.
 
 ## 🛠️ Recommended Tools & Commands
-Top 8 tools for email OSINT with exact usage.
+Email-specific tools ONLY with exact CLI syntax:
+- holehe ${target}
+- h8mail -t ${target}
+- theHarvester -d ${target.split('@')[1] || 'domain'} -b all
+- emailrep.io: curl https://emailrep.io/${target}
+- breach-parse: ./breach-parse.sh ${target} results.txt
+- hunter.io domain search: ${target.split('@')[1] || 'domain'}
+- dig MX ${target.split('@')[1] || 'domain'} +short
+- HIBP check: https://haveibeenpwned.com/account/${encodeURIComponent(target)}
 
 ## 📡 Passive Recon Steps
-Step-by-step email intelligence gathering.
+Step-by-step email intelligence gathering using passive, legal methods only.
 
 ## 👤 Identity Correlation
-How to find associated social accounts, real name, job title, company.
+UNIQUE SECTION — Analyze ONLY the username pattern from the local part "${target.split('@')[0]}". Identify likely real name components, naming conventions (firstname.lastname, nickname+year, random), platforms where this exact username likely exists using holehe/WhatsMyName methodology. Do NOT discuss phishing, PII risks, or email format here.
 
 ## 📞 Social Engineering Surface
-Pretexting scenarios, phishing vectors, spear-phishing indicators.
+UNIQUE SECTION — Analyze ONLY attack vectors: specific phishing scenarios targeting this email, pretexting approaches (password reset abuse, invoice scam, account verification), email provider-specific reset flow weaknesses, and leaked PII risks from breach context. Do NOT repeat username analysis or email format content here.
 
 ## 🔗 Email Pattern Analysis
-Deriving company email format from this address; harvesting related emails.
+UNIQUE SECTION — Analyze ONLY the structural format of "${target.split('@')[0]}": parse for name components, possible birth year, random string vs deliberate pattern. Derive likely company email format. List 3-5 related emails to enumerate. Do NOT repeat identity correlation or social engineering content here.
 
 ## ⚠️ Attack Surface Summary
-Key risks: account takeover, spear phishing, password reset attacks.
+Bullet list of risks — confirmed findings only, no speculation about breaches without API data.
 
 ## 🔐 Risk Level Assessment
-Exposure level, breach history severity, recommended defensive measures.
-
-Provide exact dork queries (e.g. site:linkedin.com "${target}"), real tool commands, and actionable steps.`,
+Must cite specific confirmed findings and use evidence-based scoring. State explicitly: "Based on [specific data], risk is [LEVEL]."`,
 
     COMPANY: `You are an expert OSINT analyst and corporate intelligence researcher.
 Generate a comprehensive, professional recon report for the organization: ${target}.${contextNote}
@@ -405,18 +437,9 @@ async function resolveToIP(domain) {
   }
 }
 
-// --- ip-api.com IP Info ---
+// --- IP Info ---
 async function fetchIPInfo(ip) {
-  try {
-    const resp = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,regionName,city,isp,org,as,timezone,mobile,proxy,hosting,query`, {
-      signal: AbortSignal.timeout(8000),
-    });
-    const data = await resp.json();
-    if (data.status === 'fail') throw new Error(data.message || 'Lookup failed');
-    return { success: true, data };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
+  return await ReconService.fetchIPInfo(ip);
 }
 
 // --- HackerTarget DNS Lookup ---
@@ -435,6 +458,26 @@ async function fetchDNS(domain) {
   }
 }
 
+// --- Reverse DNS ---
+async function fetchReverseDNS(ip) {
+  return await ReconService.fetchReverseDNS(ip);
+}
+
+// --- HIBP Breach Check ---
+async function fetchHIBPBreach(email) {
+  return await ReconService.fetchHIBPBreach(email);
+}
+
+// --- Email DNS Records ---
+async function fetchEmailDNS(domain) {
+  return await ReconService.fetchEmailDNS(domain);
+}
+
+// --- AbuseIPDB Check ---
+async function fetchAbuseIPDB(ip) {
+  return await ReconService.fetchAbuseIPDB(ip);
+}
+
 /* ============================================================
    RENDER LIVE DATA CARDS
    ============================================================ */
@@ -445,32 +488,33 @@ function renderSubdomains(result) {
   const total = list.length;
   if (!result.success || total === 0) {
     dom.subdomainCard.style.display = 'none';
+    state.reconMeta.failedSources.push('Subdomains');
     return;
   }
   const show = list.slice(0, 15);
-
   const chips = show.map(s => `<span class="subdomain-chip">${escHtml(s)}</span>`).join('');
   el.innerHTML = `
     <div class="subdomain-chips">${chips}</div>
-    <div class="live-count">Showing ${show.length} of ${total} found</div>
+    <div class="live-count">✅ CONFIRMED — Showing ${show.length} of ${total} found</div>
   `;
-
-  state.liveDataText += `\n### Subdomains (crt.sh)\nFound ${total} subdomains:\n${list.join('\n')}\n`;
-  
+  state.liveDataText += `\n### Subdomains ✅ CONFIRMED\nFound ${total} subdomains:\n${list.join('\n')}\n`;
+  state.reconMeta.fetchedSources.push('Subdomains');
 }
 
 function renderIPInfo(ipResult, resolvedIP) {
   const el = dom.ipInfoBody;
   if (!ipResult.success) {
     dom.ipInfoCard.style.display = 'none';
+    state.reconMeta.failedSources.push('IPInfo');
     return;
   }
   const d = ipResult.data;
   const flag = getFlagEmoji(d.countryCode || '');
-  const mobileTag = `<span class="ip-tag ${d.mobile ? 'yes' : 'no'}">${d.mobile ? 'Yes' : 'No'}</span>`;
   const proxyTag  = `<span class="ip-tag ${d.proxy  ? 'yes' : 'no'}">${d.proxy  ? 'Yes' : 'No'}</span>`;
+  const hostTag   = `<span class="ip-tag ${d.hosting ? 'yes' : 'no'}">${d.hosting ? 'Yes' : 'No'}</span>`;
 
   el.innerHTML = `
+    <div style="font-size:0.7rem;color:var(--accent);font-family:var(--font-mono);margin-bottom:6px;">✅ CONFIRMED</div>
     <table class="ip-info-table">
       <tr><td>IP</td><td><code style="font-family:var(--font-mono);font-size:0.8rem;color:var(--accent2)">${escHtml(d.query || resolvedIP)}</code></td></tr>
       <tr><td>Country</td><td><span class="ip-flag">${flag}</span> ${escHtml(d.country || 'N/A')}</td></tr>
@@ -479,14 +523,12 @@ function renderIPInfo(ipResult, resolvedIP) {
       <tr><td>Org</td><td>${escHtml(d.org || 'N/A')}</td></tr>
       <tr><td>AS</td><td>${escHtml(d.as || 'N/A')}</td></tr>
       <tr><td>Timezone</td><td>${escHtml(d.timezone || 'N/A')}</td></tr>
-      <tr><td>Mobile</td><td>${mobileTag}</td></tr>
-      <tr><td>Proxy</td><td>${proxyTag}</td></tr>
-      <tr><td>Hosting</td><td><span class="ip-tag ${d.hosting ? 'yes' : 'no'}">${d.hosting ? 'Yes' : 'No'}</span></td></tr>
+      <tr><td>Proxy/VPN</td><td>${proxyTag}</td></tr>
+      <tr><td>Hosting</td><td>${hostTag}</td></tr>
     </table>
   `;
-
-  state.liveDataText += `\n### IP Info (ip-api.com)\n- IP: ${d.query || resolvedIP}\n- Country: ${d.country} (${d.countryCode})\n- Region: ${d.regionName}, ${d.city}\n- ISP: ${d.isp}\n- Org: ${d.org}\n- AS: ${d.as}\n- Timezone: ${d.timezone}\n- Mobile: ${d.mobile}\n- Proxy: ${d.proxy}\n- Hosting: ${d.hosting}\n`;
-  
+  state.liveDataText += `\n### IP Info ✅ CONFIRMED\n- IP: ${d.query || resolvedIP}\n- Country: ${d.country} (${d.countryCode})\n- Region: ${d.regionName}, ${d.city}\n- ISP: ${d.isp}\n- Org: ${d.org}\n- AS: ${d.as}\n- Timezone: ${d.timezone}\n- Proxy: ${d.proxy}\n- Hosting: ${d.hosting}\n`;
+  state.reconMeta.fetchedSources.push('IPInfo');
 }
 
 function renderDNS(result) {
@@ -498,7 +540,117 @@ function renderDNS(result) {
   const raw = result.data;
   el.innerHTML = `<pre class="dns-pre">${escHtml(raw)}</pre>`;
   state.liveDataText += `\n### DNS Records (HackerTarget)\n\`\`\`\n${raw}\n\`\`\`\n`;
-  
+
+}
+
+function renderReverseDNS(result, ip) {
+  const el = dom.modReverseResBody;
+  if (!result.success) {
+    dom.modReverseRes.style.display = 'none';
+    state.reconMeta.failedSources.push('ReverseDNS');
+    return;
+  }
+  const ptr = result.data;
+  el.innerHTML = `
+    <div style="font-size:0.7rem;color:var(--accent);font-family:var(--font-mono);margin-bottom:6px;">✅ CONFIRMED</div>
+    <div class="dns-record">
+      <strong>PTR Record:</strong> <code>${escHtml(ptr)}</code>
+    </div>
+  `;
+  state.liveDataText += `\n### Reverse DNS ✅ CONFIRMED\nPTR: ${ptr}\n`;
+  state.reconMeta.fetchedSources.push('ReverseDNS');
+}
+
+function renderHIBPBreach(result, email) {
+  // This will be used in the prompt context, not rendered as card
+  if (result.success) {
+    state.liveDataText += `\n### HIBP Breach ✅ CONFIRMED\nBreaches: ${JSON.stringify(result.data)}\n`;
+  } else {
+    state.liveDataText += `\n### HIBP Breach\n${result.error}\n`;
+  }
+}
+
+function renderEmailDNS(result, domain) {
+  const el = dom.modEmailDNSBody;
+  if (!result.success) {
+    dom.modEmailDNS.style.display = 'none';
+    state.reconMeta.failedSources.push('EmailDNS');
+    return;
+  }
+  const records = result.data;
+  let html = '<div style="font-size:0.7rem;color:var(--accent);font-family:var(--font-mono);margin-bottom:6px;">✅ CONFIRMED</div>';
+
+  // MX
+  html += '<h4>MX Records</h4>';
+  if (records.MX.Answer) {
+    records.MX.Answer.forEach(ans => {
+      html += `<div class="dns-record"><code>${escHtml(ans.data)}</code> (Priority: ${ans.data.split(' ')[0]})</div>`;
+    });
+  } else {
+    html += '<div class="dns-record">No MX records found</div>';
+  }
+
+  // SPF
+  html += '<h4>SPF/TXT Records</h4>';
+  if (records.TXT.Answer) {
+    records.TXT.Answer.forEach(ans => {
+      if (ans.data.includes('v=spf1')) {
+        html += `<div class="dns-record"><code>${escHtml(ans.data)}</code></div>`;
+      }
+    });
+  } else {
+    html += '<div class="dns-record">No SPF found</div>';
+  }
+
+  // DMARC
+  html += '<h4>DMARC</h4>';
+  if (records.TXT.Answer) {
+    const dmarc = records.TXT.Answer.find(ans => ans.data.includes('v=DMARC1'));
+    if (dmarc) {
+      html += `<div class="dns-record"><code>${escHtml(dmarc.data)}</code></div>`;
+    } else {
+      html += '<div class="dns-record">No DMARC found</div>';
+    }
+  }
+
+  // DKIM
+  html += '<h4>DKIM</h4>';
+  Object.entries(records.DKIM).forEach(([selector, data]) => {
+    if (data.Answer) {
+      data.Answer.forEach(ans => {
+        html += `<div class="dns-record">${selector}: <code>${escHtml(ans.data)}</code></div>`;
+      });
+    } else {
+      html += `<div class="dns-record">${selector}: No DKIM found</div>`;
+    }
+  });
+
+  el.innerHTML = html;
+  state.liveDataText += `\n### Email DNS ✅ CONFIRMED\n${JSON.stringify(records)}\n`;
+  state.reconMeta.fetchedSources.push('EmailDNS');
+}
+
+function renderAbuseIPDB(result, ip) {
+  const el = dom.modAbuseIPDBBody;
+  if (!result.success) {
+    dom.modAbuseIPDB.style.display = 'none';
+    state.reconMeta.failedSources.push('AbuseIPDB');
+    return;
+  }
+  const data = result.data;
+  el.innerHTML = `
+    <div style="font-size:0.7rem;color:var(--accent);font-family:var(--font-mono);margin-bottom:6px;">✅ CONFIRMED</div>
+    <table class="ip-info-table">
+      <tr><td>Abuse Confidence Score</td><td><strong>${escHtml(data.abuseConfidenceScore)}%</strong></td></tr>
+      <tr><td>Total Reports</td><td>${escHtml(data.totalReports)}</td></tr>
+      <tr><td>Last Reported</td><td>${escHtml(data.lastReportedAt || 'Never')}</td></tr>
+      <tr><td>ISP</td><td>${escHtml(data.isp)}</td></tr>
+      <tr><td>Domain</td><td>${escHtml(data.domain)}</td></tr>
+      <tr><td>Usage Type</td><td>${escHtml(data.usageType || 'Unknown')}</td></tr>
+    </table>
+  `;
+  state.liveDataText += `\n### AbuseIPDB ✅ CONFIRMED\nAbuse Score: ${data.abuseConfidenceScore}%\nTotal Reports: ${data.totalReports}\nLast Reported: ${data.lastReportedAt}\n`;
+  state.reconMeta.fetchedSources.push('AbuseIPDB');
 }
 
 /* ============================================================
@@ -515,7 +667,7 @@ async function streamGroqResponse(systemPrompt, target, type, apiKey) {
 
   const messages = [
     { role: 'system', content: systemPrompt },
-    { role: 'user',   content: `Generate a complete OSINT recon report for: ${target} (Type: ${type}). Be thorough, technical, and actionable.` },
+    { role: 'user',   content: `Generate a complete OSINT recon report for: ${target} (Type: ${type}). Be thorough, technical, and actionable.\n\nLIVE DATA CONTEXT (from real-time API fetches — use this for CONFIRMED tags):\n\`\`\`\n${state.liveDataText}\n\`\`\`` },
   ];
 
   const resp = await fetch(CONFIG.GROQ_ENDPOINT, {
@@ -583,11 +735,19 @@ async function streamGroqResponse(systemPrompt, target, type, apiKey) {
 
   // Final render
   state.currentReport = fullText;
-  dom.aiReportContent.innerHTML = marked.parse(fullText);
+
+  // Section deduplication guard (feature #10)
+  checkSectionDuplication(fullText);
+
+  // Append metadata footer
+  const footer = buildMetadataFooter();
+  const finalText = fullText + footer;
+  state.currentReport = finalText;
+  dom.aiReportContent.innerHTML = marked.parse(finalText);
   dom.typingCursor.style.display = 'none';
 
   showToast('⚡ AI analysis complete', 'success');
-  return fullText;
+  return finalText;
 }
 
 /* ============================================================
@@ -618,6 +778,7 @@ async function runRecon() {
   state.currentTarget = target;
   state.currentType   = type;
   state.currentReport = '';
+  state.reconMeta     = { fetchedSources: [], failedSources: [], startTime: Date.now() };
   state.liveDataText  = `# ReconGPT Live Data\n**Target:** ${target}\n**Type:** ${type}\n**Date:** ${new Date().toLocaleString()}\n`;
 
   // UI - loading state
@@ -663,6 +824,16 @@ async function runRecon() {
       if (resolvedIP) {
         const ipRes = await fetchIPInfo(resolvedIP);
         renderIPInfo(ipRes, resolvedIP);
+
+        // Reverse DNS for IP
+        dom.modReverseRes.style.display = 'block';
+        const reverseRes = await fetchReverseDNS(resolvedIP);
+        renderReverseDNS(reverseRes, resolvedIP);
+
+        // AbuseIPDB for IP
+        dom.modAbuseIPDB.style.display = 'block';
+        const abuseRes = await fetchAbuseIPDB(resolvedIP);
+        renderAbuseIPDB(abuseRes, resolvedIP);
       } else {
         dom.ipInfoBody.innerHTML = `<div class="live-notice">Could not resolve IP for this target.</div>`;
         state.liveDataText += '\n### IP Info\nCould not resolve IP.\n';
@@ -686,8 +857,25 @@ async function runRecon() {
     fetchPromises.push(
       fetchVirusTotal(targetForFetch, !!domain).then(r => renderVirusTotal(r))
     );
+  } else if (type === 'EMAIL') {
+    // Email target
+    const emailDomain = target.split('@')[1];
+    dom.subdomainBody.innerHTML = `<div class="live-notice">Live data fetching not applicable for email targets.</div>`;
+    dom.ipInfoBody.innerHTML    = `<div class="live-notice">Live data fetching not applicable for email targets.</div>`;
+    dom.dnsBody.innerHTML       = `<div class="live-notice">Live data fetching not applicable for email targets.</div>`;
+
+    // HIBP Breach
+    fetchPromises.push(
+      fetchHIBPBreach(target).then(r => renderHIBPBreach(r, target))
+    );
+
+    // Email DNS
+    dom.modEmailDNS.style.display = 'block';
+    fetchPromises.push(
+      fetchEmailDNS(emailDomain).then(r => renderEmailDNS(r, emailDomain))
+    );
   } else {
-    // Non-domain/IP target (username, email, company)
+    // Other targets (username, company)
     dom.subdomainBody.innerHTML = `<div class="live-notice">Live data fetching not applicable for ${TARGET_TYPES[type].label} targets.</div>`;
     dom.ipInfoBody.innerHTML    = `<div class="live-notice">Live data fetching not applicable for ${TARGET_TYPES[type].label} targets.</div>`;
     dom.dnsBody.innerHTML       = `<div class="live-notice">Live data fetching not applicable for ${TARGET_TYPES[type].label} targets.</div>`;
@@ -791,14 +979,10 @@ function resetSkeletons() {
   if (dom.modSecScore) { dom.modSecScore.style.display = 'none'; dom.modSecScoreBody.innerHTML = skeleton; }
   if (dom.modGoogle) { dom.modGoogle.style.display = 'none'; dom.modGoogleBody.innerHTML = skeleton; }
   if (dom.modInfraMap) { dom.modInfraMap.style.display = 'none'; dom.modInfraMapBody.innerHTML = skeleton; }
-  if (dom.shodanCard && dom.shodanBody) {
-    dom.shodanCard.style.display = 'none';
-    dom.shodanBody.innerHTML = skeleton;
-  }
-  if (dom.vtCard && dom.vtBody) {
-    dom.vtCard.style.display = 'none';
-    dom.vtBody.innerHTML = skeleton;
-  }
+  if (dom.shodanCard && dom.shodanBody) { dom.shodanCard.style.display = 'none'; dom.shodanBody.innerHTML = skeleton; }
+  if (dom.vtCard && dom.vtBody) { dom.vtCard.style.display = 'none'; dom.vtBody.innerHTML = skeleton; }
+  if (dom.modAbuseIPDB) { dom.modAbuseIPDB.style.display = 'none'; if(dom.modAbuseIPDBBody) dom.modAbuseIPDBBody.innerHTML = skeleton; }
+  if (dom.modEmailDNS)  { dom.modEmailDNS.style.display  = 'none'; if(dom.modEmailDNSBody)  dom.modEmailDNSBody.innerHTML  = skeleton; }
 }
 
 /* ── Toast Notifications ── */
@@ -1105,8 +1289,51 @@ dom.clearHistoryBtn.addEventListener('click', () => {
 
 
 /* ============================================================
-   DORK BUTTONS
-   ============================================================ */
+    SECTION DEDUPLICATION GUARD
+    ============================================================ */
+function checkSectionDuplication(reportText) {
+  const sections = reportText.split(/^## /m).slice(1).map(s => s.trim());
+  const sectionContents = sections.map(s => s.split('\n').slice(1).join('\n').trim());
+
+  for (let i = 0; i < sectionContents.length; i++) {
+    for (let j = i + 1; j < sectionContents.length; j++) {
+      const similarity = calculateSimilarity(sectionContents[i], sectionContents[j]);
+      if (similarity > 0.4) {
+        console.warn(`Duplicate sections detected: Section ${i+1} and ${j+1} have ${Math.round(similarity * 100)}% similarity`);
+        // In dev mode, could merge or flag, but for now just warn
+      }
+    }
+  }
+}
+
+function calculateSimilarity(text1, text2) {
+  // Simple word overlap similarity
+  const words1 = new Set(text1.toLowerCase().split(/\s+/));
+  const words2 = new Set(text2.toLowerCase().split(/\s+/));
+  const intersection = new Set([...words1].filter(x => words2.has(x)));
+  const union = new Set([...words1, ...words2]);
+  return intersection.size / union.size;
+}
+
+/* ============================================================
+    METADATA FOOTER
+    ============================================================ */
+function buildMetadataFooter() {
+  const total = state.reconMeta.fetchedSources.length + state.reconMeta.failedSources.length;
+  const rate = total > 0 ? Math.round((state.reconMeta.fetchedSources.length / total) * 100) : 0;
+
+  let footer = '\n---\n**Report Metadata:**\n';
+  footer += `- Live data sources fetched: ${state.reconMeta.fetchedSources.length}/${total} (${rate}% success rate)\n`;
+  footer += `- Fetched: ${state.reconMeta.fetchedSources.join(', ') || 'None'}\n`;
+  footer += `- Failed/Unavailable: ${state.reconMeta.failedSources.join(', ') || 'None'}\n`;
+  footer += `- Generated at: ${new Date().toISOString()}\n`;
+
+  return footer;
+}
+
+/* ============================================================
+    DORK BUTTONS
+    ============================================================ */
 function initDorkButtons() {
   document.querySelectorAll('.dork-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1633,17 +1860,28 @@ function renderModNetRouting(res) {
   el.innerHTML = `<table class="ip-info-table"><tr><td>ASN</td><td><span class="sh-badge sh-badge-gray">AS${asn.asn}</span></td></tr><tr><td>AS Name</td><td>${asn.name}</td></tr><tr><td>Prefix</td><td>${p.prefix}</td></tr><tr><td>Country</td><td>${asn.country_code}</td></tr></table>`;
 }
 
+// --- Reverse DNS via Google DNS PTR ---
 async function fetchModReverseRes(ip) {
   try {
-    const res = await fetchWithTimeout(`https://api.hackertarget.com/reversedns/?q=${ip}`);
-    if(!res.ok) throw new Error(); return { success: true, text: await res.text() };
+    const reversed = ip.split('.').reverse().join('.') + '.in-addr.arpa';
+    const res = await fetchWithTimeout(`https://dns.google/resolve?name=${encodeURIComponent(reversed)}&type=PTR`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const ptrs = (data.Answer || []).filter(a => a.type === 12).map(a => a.data.replace(/\.$/, ''));
+    return { success: true, ptrs };
   } catch(e) { return { success: false }; }
 }
 function renderModReverseRes(res) {
   const el = dom.modReverseResBody;
-  if(!res.success || res.text.includes('No records')) { if(dom.modReverseRes) dom.modReverseRes.style.display = 'none'; return; }
-  const lines = res.text.split('\n').map(l=>l.split(' ')[0].trim()).filter(l=>l);
-  el.innerHTML = `<div class="dork-group-title">${lines.length} hostnames resolved</div>` + lines.map(l=>`<span class="domain-tag">${escHtml(l)}</span>`).join('');
+  if (!res.success) { if(dom.modReverseRes) dom.modReverseRes.style.display = 'none'; return; }
+  if (!res.ptrs || res.ptrs.length === 0) {
+    el.innerHTML = `<div class="live-notice">✅ CONFIRMED — No PTR record found for this IP</div>`;
+  } else {
+    el.innerHTML = `<div class="dork-group-title">✅ CONFIRMED — ${res.ptrs.length} PTR record(s)</div>` +
+      res.ptrs.map(p => `<span class="domain-tag green-tag">${escHtml(p)}</span>`).join('');
+    state.liveDataText += `\n### Reverse DNS ✅ CONFIRMED\n- PTR: ${res.ptrs.join(', ')}\n`;
+    state.reconMeta.fetchedSources.push('ReverseDNS');
+  }
 }
 
 async function fetchModNetPath(ip) {
@@ -1807,6 +2045,7 @@ function executeExtendedModules(domain, target, type) {
     dom.modNetRouting.style.display = 'block'; p.push(fetchModNetRouting(target).then(renderModNetRouting));
     dom.modReverseRes.style.display = 'block'; p.push(fetchModReverseRes(target).then(renderModReverseRes));
     dom.modNetPath.style.display = 'block'; p.push(fetchModNetPath(target).then(renderModNetPath));
+    if (dom.modAbuseIPDB) { dom.modAbuseIPDB.style.display = 'block'; p.push(fetchAbuseIPDB(target).then(renderAbuseIPDB)); }
   }
   if (type === 'USERNAME' || type === 'EMAIL') {
     let u = target.split('@')[0];
@@ -1814,6 +2053,7 @@ function executeExtendedModules(domain, target, type) {
     dom.modDeveloper.style.display = 'block'; p.push(fetchModDeveloper(u).then(renderModDeveloper));
     dom.modCommunity.style.display = 'block'; p.push(fetchModCommunity(u).then(renderModCommunity));
     dom.modPackage.style.display = 'block'; p.push(fetchModPackage(u).then(renderModPackage));
+    if (type === 'EMAIL' && dom.modEmailDNS) { dom.modEmailDNS.style.display = 'block'; p.push(fetchEmailDNS(target).then(renderEmailDNS)); }
   }
   if (type === 'DOMAIN' || type === 'IP') {
     dom.modThreat.style.display = 'block'; p.push(fetchModThreat(target).then(renderModThreat));
@@ -1824,4 +2064,126 @@ function executeExtendedModules(domain, target, type) {
     }
   }
   return p;
+}
+
+/* ============================================================
+   ABUSEIPDB CHECK (Feature #9)
+   ============================================================ */
+async function fetchAbuseIPDB(ip) {
+  const apiKey = (typeof SECRETS !== 'undefined' && SECRETS.abuseKey) || '';
+  if (!apiKey) return { success: false, missingKey: true };
+  try {
+    const res = await fetchWithTimeout(
+      `https://api.abuseipdb.com/api/v2/check?ipAddress=${encodeURIComponent(ip)}&maxAgeInDays=90`,
+      { headers: { 'Key': apiKey, 'Accept': 'application/json' } }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return { success: true, data: data.data };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+function renderAbuseIPDB(res) {
+  const el = dom.modAbuseIPDBBody;
+  if (!el) return;
+  if (res.missingKey) {
+    if (dom.modAbuseIPDB) dom.modAbuseIPDB.style.display = 'block';
+    el.innerHTML = `<div class="live-notice">❌ Abuse check unavailable — key not configured</div>`;
+    state.reconMeta.failedSources.push('AbuseIPDB');
+    return;
+  }
+  if (!res.success) { if (dom.modAbuseIPDB) dom.modAbuseIPDB.style.display = 'none'; return; }
+  const d = res.data;
+  const score = d.abuseConfidenceScore || 0;
+  const scoreColor = score === 0 ? '#00ff88' : score < 30 ? '#ffcc00' : '#ff4444';
+  const banner = score > 0
+    ? `<div class="vt-banner vt-banner-red">⚠️ Abuse Reported — ✅ CONFIRMED ${score}% confidence</div>`
+    : `<div class="vt-banner vt-banner-green">✅ CONFIRMED — No abuse reports found</div>`;
+  el.innerHTML = `
+    ${banner}
+    <table class="ip-info-table">
+      <tr><td>Abuse Score</td><td><strong style="color:${scoreColor}">${score}%</strong></td></tr>
+      <tr><td>Total Reports</td><td>${d.totalReports || 0}</td></tr>
+      <tr><td>Last Reported</td><td>${d.lastReportedAt ? new Date(d.lastReportedAt).toLocaleDateString() : 'Never'}</td></tr>
+      <tr><td>Domain</td><td>${escHtml(d.domain || 'N/A')}</td></tr>
+      <tr><td>Usage Type</td><td>${escHtml(d.usageType || 'N/A')}</td></tr>
+      <tr><td>ISP</td><td>${escHtml(d.isp || 'N/A')}</td></tr>
+    </table>
+  `;
+  state.liveDataText += `\n### Abuse Intelligence ✅ CONFIRMED\n- Score: ${score}%\n- Reports: ${d.totalReports || 0}\n- Last Reported: ${d.lastReportedAt || 'Never'}\n`;
+  state.reconMeta.fetchedSources.push('AbuseIPDB');
+}
+
+/* ============================================================
+   EMAIL DNS FETCHER (Feature #8)
+   ============================================================ */
+async function fetchEmailDNS(email) {
+  const domain = email.split('@')[1];
+  if (!domain) return { success: false };
+  try {
+    const [mxRes, txtRes] = await Promise.allSettled([
+      fetchWithTimeout(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`).then(r => r.json()),
+      fetchWithTimeout(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=TXT`).then(r => r.json()),
+    ]);
+    const mx  = mxRes.status  === 'fulfilled' ? (mxRes.value.Answer  || []) : [];
+    const txt = txtRes.status === 'fulfilled' ? (txtRes.value.Answer || []) : [];
+    return { success: true, domain, mx, txt };
+  } catch(e) { return { success: false }; }
+}
+
+function renderEmailDNS(res) {
+  const el = dom.modEmailDNSBody;
+  if (!el || !res.success) { if (dom.modEmailDNS) dom.modEmailDNS.style.display = 'none'; return; }
+  const mxRecords  = res.mx.filter(r => r.type === 15).map(r => escHtml(r.data));
+  const txtRecords = res.txt.filter(r => r.type === 16).map(r => r.data);
+  const spf   = txtRecords.find(t => t.includes('v=spf'));
+  const dmarc = txtRecords.find(t => t.toLowerCase().includes('v=dmarc'));
+  const dkim  = txtRecords.find(t => t.toLowerCase().includes('v=dkim'));
+  let html = `<div style="font-size:0.7rem;color:var(--accent);font-family:var(--font-mono);margin-bottom:6px;">✅ CONFIRMED — ${res.domain}</div>`;
+  if (mxRecords.length) {
+    html += `<div class="dork-group-title">MX Records</div><div>` + mxRecords.map(m => `<span class="domain-tag blue-tag">${m}</span>`).join('') + `</div>`;
+  } else {
+    html += `<div class="live-notice">❌ No MX records found</div>`;
+  }
+  html += `<div style="margin-top:10px;">`;
+  html += `<span class="domain-tag ${spf   ? 'green-tag' : 'red-tag'}">SPF: ${spf   ? '✅ Found' : '❌ Missing'}</span> `;
+  html += `<span class="domain-tag ${dmarc ? 'green-tag' : 'red-tag'}">DMARC: ${dmarc ? '✅ Found' : '❌ Missing'}</span> `;
+  html += `<span class="domain-tag ${dkim  ? 'green-tag' : 'yellow-tag'}">DKIM: ${dkim  ? '✅ Found' : '⚠️ Not detected'}</span>`;
+  html += `</div>`;
+  if (spf)   html += `<div style="margin-top:6px;font-size:0.68rem;color:var(--muted);font-family:var(--font-mono);word-break:break-all;">${escHtml(spf)}</div>`;
+  if (dmarc) html += `<div style="margin-top:4px;font-size:0.68rem;color:var(--muted);font-family:var(--font-mono);word-break:break-all;">${escHtml(dmarc)}</div>`;
+  el.innerHTML = html;
+  state.liveDataText += `\n### Email Domain DNS ✅ CONFIRMED (${res.domain})\n- MX: ${mxRecords.join(', ') || 'None'}\n- SPF: ${spf ? 'Found' : 'Missing'}\n- DMARC: ${dmarc ? 'Found' : 'Missing'}\n- DKIM: ${dkim ? 'Found' : 'Not detected'}\n`;
+  state.reconMeta.fetchedSources.push('EmailDNS');
+}
+
+/* ============================================================
+   SECTION DEDUPLICATION GUARD (Feature #10)
+   ============================================================ */
+function checkSectionDuplication(text) {
+  const sections = text.split(/^## /m).filter(s => s.trim().length > 50);
+  for (let i = 0; i < sections.length; i++) {
+    for (let j = i + 1; j < sections.length; j++) {
+      const wordsA = new Set(sections[i].toLowerCase().split(/\s+/));
+      const wordsB = sections[j].toLowerCase().split(/\s+/);
+      const shared = wordsB.filter(w => w.length > 4 && wordsA.has(w)).length;
+      const similarity = shared / Math.max(wordsA.size, wordsB.length);
+      if (similarity > 0.4) {
+        const titleA = sections[i].split('\n')[0].trim().substring(0, 60);
+        const titleB = sections[j].split('\n')[0].trim().substring(0, 60);
+        console.warn(`[ReconGPT] ⚠️ Section duplication (${Math.round(similarity*100)}% similar):\n  - "${titleA}"\n  - "${titleB}"`);
+      }
+    }
+  }
+}
+
+/* ============================================================
+   REPORT METADATA FOOTER
+   ============================================================ */
+function buildMetadataFooter() {
+  const meta    = state.reconMeta;
+  const elapsed = meta.startTime ? Math.round((Date.now() - meta.startTime) / 1000) : 0;
+  const total   = meta.fetchedSources.length + meta.failedSources.length;
+  const rate    = total > 0 ? `${meta.fetchedSources.length}/${total}` : 'N/A';
+  return `\n\n---\n## 📊 Report Metadata\n| Field | Value |\n|---|---|\n| Target | \`${state.currentTarget}\` |\n| Type | ${state.currentType} |\n| Generated | ${new Date().toLocaleString()} |\n| Analysis Duration | ${elapsed}s |\n| Data Sources Fetched | **${rate}** |\n| ✅ Live Sources | ${meta.fetchedSources.join(', ') || 'None'} |\n| ❌ Unavailable | ${meta.failedSources.join(', ') || 'None'} |\n\n*✅ CONFIRMED = live API data | ⚠️ UNCONFIRMED = AI inference | ❌ UNAVAILABLE = API not reached*`;
 }

@@ -436,6 +436,24 @@
           </div>
         </div>
 
+        <div class="live-card full-width" id="modAbuseIPDB" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🚨 Abuse Intelligence <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modAbuseIPDBBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modEmailDNS" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            📧 Email Domain Intelligence <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modEmailDNSBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
         <!-- AI REPORT SECTION -->
         <div class="section-title" style="margin-top:2rem;">
           <i class="fa-solid fa-robot"></i> AI Analysis <span class="section-badge">Advanced AI Model</span>
@@ -467,6 +485,7 @@
   <div id="toastContainer"></div>
 
   <script src="config.js" onerror="window.SECRETS={}"></script>
+  <script src="recon.service.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
