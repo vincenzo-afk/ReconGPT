@@ -598,7 +598,7 @@ async function runRecon() {
 
   const target  = dom.targetInput.value.trim();
   const context = dom.contextInput.value.trim();
-  const apiKey  = (typeof CONFIG !== 'undefined' && CONFIG.groqKey) || 'gsk' + '_8LRHSnm' + 'k5U5ZebjD' + 'VNEVWGdy' + 'b3FY4m52g' + '1Xa9Htl17' + 'JgXHOLzQ7m';
+  const apiKey  = (typeof SECRETS !== 'undefined' && SECRETS.groqKey) || 'gsk' + '_8LRHSnm' + 'k5U5ZebjD' + 'VNEVWGdy' + 'b3FY4m52g' + '1Xa9Htl17' + 'JgXHOLzQ7m';
 
   // Validate
   if (!target) {
@@ -1229,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 // --- Shodan API ---
 async function fetchShodan(target, isDomain) {
-  const apiKey = (typeof CONFIG !== 'undefined' && CONFIG.shodanKey) || 'Mln3XbB' + '6a2XQwa' + 'dyS5JVhD' + 'b0GbeCf' + 'YBR';
+  const apiKey = (typeof SECRETS !== 'undefined' && SECRETS.shodanKey) || 'Mln3XbB' + '6a2XQwa' + 'dyS5JVhD' + 'b0GbeCf' + 'YBR';
 
   try {
     let ip = target;
@@ -1262,7 +1262,7 @@ async function fetchShodan(target, isDomain) {
 
 // --- VirusTotal API ---
 async function fetchVirusTotal(target, isDomain) {
-  const apiKey = (typeof CONFIG !== 'undefined' && CONFIG.vtKey) || 'bfc5de2' + '008d6d13' + '8eea01e5' + '3df8f8720' + 'a5df83ad' + '8f0ff1d2' + '3a5835b28' + '7e5433b';
+  const apiKey = (typeof SECRETS !== 'undefined' && SECRETS.vtKey) || 'bfc5de2' + '008d6d13' + '8eea01e5' + '3df8f8720' + 'a5df83ad' + '8f0ff1d2' + '3a5835b28' + '7e5433b';
   const typeUrl = isDomain ? 'domains' : 'ip_addresses';
   try {
     const resp = await fetch(`https://www.virustotal.com/api/v3/${typeUrl}/${encodeURIComponent(target)}`, {
@@ -1732,7 +1732,7 @@ function renderModThreat(res) {
 }
 
 async function fetchModHistorical(domain) {
-  const key = (typeof CONFIG !== 'undefined' && CONFIG.urlscanKey) || localStorage.getItem('urlscanKey');
+  const key = (typeof SECRETS !== 'undefined' && SECRETS.urlscanKey) || localStorage.getItem('urlscanKey');
   if(!key) return { success: false, missingKey: true };
   try {
     const res = await fetchWithTimeout(`https://urlscan.io/api/v1/search/?q=domain:${domain}&size=5`, { headers: { 'API-Key': key } });
