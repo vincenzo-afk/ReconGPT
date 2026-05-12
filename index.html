@@ -76,6 +76,22 @@
 
 
 
+        
+        <!-- Extended Intelligence Keys -->
+        <div class="input-divider" style="margin: 1.5rem 0 1rem; border-top: 1px solid var(--border); position: relative; text-align: center;">
+          <span style="background: var(--surface); padding: 0 10px; color: var(--muted); font-size: 0.8rem; font-family: var(--font-mono); position: relative; top: -9px;">── Extended Intelligence ──</span>
+        </div>
+        <div class="input-group">
+          <div class="api-key-wrapper" style="margin-bottom: 8px;">
+            <input type="password" id="abuseKeyInput" class="api-input" placeholder="Intelligence Key 1 (optional)" autocomplete="off" />
+            <button class="toggle-eye" id="toggleAbuseEye" title="Show/hide key"><i class="fa-solid fa-eye" id="abuseEyeIcon"></i></button>
+          </div>
+          <div class="api-key-wrapper">
+            <input type="password" id="urlscanKeyInput" class="api-input" placeholder="Intelligence Key 2 (optional)" autocomplete="off" />
+            <button class="toggle-eye" id="toggleUrlscanEye" title="Show/hide key"><i class="fa-solid fa-eye" id="urlscanEyeIcon"></i></button>
+          </div>
+        </div>
+
         <!-- Run Button -->
         <button class="run-btn" id="runBtn">
           <i class="fa-solid fa-bolt"></i> Run ReconGPT
@@ -93,185 +109,6 @@
           </div>
         </div>
       </div>
-
-      <!-- CHECKLISTS CARD -->
-      <div class="card" id="checklistCard">
-        <div class="card-title">
-          <i class="fa-solid fa-list-check"></i> OSINT Checklists
-        </div>
-
-        <!-- Subdomain Hunting -->
-        <div class="accordion-item">
-          <div class="accordion-header" data-section="subdomain">
-            <span><i class="fa-solid fa-chevron-right accordion-icon"></i> Subdomain Hunting</span>
-            <span class="progress-badge" id="prog-subdomain">0 / 8</span>
-          </div>
-          <div class="accordion-body" id="body-subdomain">
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-amass" data-section="subdomain" />
-              <label for="chk-amass"><a href="https://amass.app" target="_blank">Amass</a> — Active/passive subdomain enumeration</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-subfinder" data-section="subdomain" />
-              <label for="chk-subfinder"><a href="https://github.com/projectdiscovery/subfinder" target="_blank">Subfinder</a> — Fast passive subdomain enum</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-crtsh" data-section="subdomain" />
-              <label for="chk-crtsh"><a href="https://crt.sh" target="_blank">crt.sh</a> — Certificate transparency logs</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-dnsdumpster" data-section="subdomain" />
-              <label for="chk-dnsdumpster"><a href="https://dnsdumpster.com" target="_blank">DNSdumpster</a> — DNS recon map</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-virustotal" data-section="subdomain" />
-              <label for="chk-virustotal"><a href="https://virustotal.com/gui/domain" target="_blank">VirusTotal</a> — Domain intelligence</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-shodan1" data-section="subdomain" />
-              <label for="chk-shodan1"><a href="https://shodan.io" target="_blank">Shodan</a> — Internet-connected devices</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-sectrails" data-section="subdomain" />
-              <label for="chk-sectrails"><a href="https://securitytrails.com" target="_blank">SecurityTrails</a> — DNS history & subdomains</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-harvester1" data-section="subdomain" />
-              <label for="chk-harvester1"><a href="https://github.com/laramies/theHarvester" target="_blank">theHarvester</a> — Multi-source recon tool</label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tech Fingerprinting -->
-        <div class="accordion-item">
-          <div class="accordion-header" data-section="tech">
-            <span><i class="fa-solid fa-chevron-right accordion-icon"></i> Tech Fingerprinting</span>
-            <span class="progress-badge" id="prog-tech">0 / 6</span>
-          </div>
-          <div class="accordion-body" id="body-tech">
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-wappalyzer" data-section="tech" />
-              <label for="chk-wappalyzer"><a href="https://wappalyzer.com" target="_blank">Wappalyzer</a> — Technology profiler</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-builtwith" data-section="tech" />
-              <label for="chk-builtwith"><a href="https://builtwith.com" target="_blank">BuiltWith</a> — Tech stack lookup</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-whatweb" data-section="tech" />
-              <label for="chk-whatweb"><a href="https://github.com/urbanadventurer/WhatWeb" target="_blank">WhatWeb</a> — Web app fingerprinter</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-nikto" data-section="tech" />
-              <label for="chk-nikto"><a href="https://github.com/sullo/nikto" target="_blank">Nikto</a> — Web server scanner</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-nmap" data-section="tech" />
-              <label for="chk-nmap"><a href="https://nmap.org" target="_blank">nmap -sV -sC</a> — Service/version detection</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-censys1" data-section="tech" />
-              <label for="chk-censys1"><a href="https://search.censys.io" target="_blank">Censys</a> — Internet scan database</label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Social Media OSINT -->
-        <div class="accordion-item">
-          <div class="accordion-header" data-section="social">
-            <span><i class="fa-solid fa-chevron-right accordion-icon"></i> Social Media OSINT</span>
-            <span class="progress-badge" id="prog-social">0 / 5</span>
-          </div>
-          <div class="accordion-body" id="body-social">
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-sherlock" data-section="social" />
-              <label for="chk-sherlock"><a href="https://github.com/sherlock-project/sherlock" target="_blank">Sherlock</a> — Username across 300+ sites</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-wmn" data-section="social" />
-              <label for="chk-wmn"><a href="https://whatsmyname.app" target="_blank">WhatsMyName</a> — Username enumeration</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-maltego" data-section="social" />
-              <label for="chk-maltego"><a href="https://maltego.com" target="_blank">Maltego</a> — Link analysis & visualization</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-socialsearch" data-section="social" />
-              <label for="chk-socialsearch"><a href="https://social-searcher.com" target="_blank">Social Searcher</a> — Real-time social monitor</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-googledorks" data-section="social" />
-              <label for="chk-googledorks">Google Dorks — site:linkedin.com/in "name"</label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Email Harvesting -->
-        <div class="accordion-item">
-          <div class="accordion-header" data-section="email">
-            <span><i class="fa-solid fa-chevron-right accordion-icon"></i> Email Harvesting</span>
-            <span class="progress-badge" id="prog-email">0 / 5</span>
-          </div>
-          <div class="accordion-body" id="body-email">
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-harvester2" data-section="email" />
-              <label for="chk-harvester2"><a href="https://github.com/laramies/theHarvester" target="_blank">theHarvester</a> — Email harvesting mode</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-hunter" data-section="email" />
-              <label for="chk-hunter"><a href="https://hunter.io" target="_blank">Hunter.io</a> — Email finder & verifier</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-phonebook" data-section="email" />
-              <label for="chk-phonebook"><a href="https://phonebook.cz" target="_blank">Phonebook.cz</a> — Email intelligence</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-hibp" data-section="email" />
-              <label for="chk-hibp"><a href="https://haveibeenpwned.com" target="_blank">HaveIBeenPwned</a> — Breach check</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-breach" data-section="email" />
-              <label for="chk-breach"><a href="https://breachdirectory.org" target="_blank">Breach Directory</a> — Credential database</label>
-            </div>
-          </div>
-        </div>
-
-        <!-- IP & Network -->
-        <div class="accordion-item">
-          <div class="accordion-header" data-section="network">
-            <span><i class="fa-solid fa-chevron-right accordion-icon"></i> IP &amp; Network</span>
-            <span class="progress-badge" id="prog-network">0 / 6</span>
-          </div>
-          <div class="accordion-body" id="body-network">
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-shodan2" data-section="network" />
-              <label for="chk-shodan2"><a href="https://shodan.io" target="_blank">Shodan</a> — Device &amp; service discovery</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-censys2" data-section="network" />
-              <label for="chk-censys2"><a href="https://search.censys.io" target="_blank">Censys</a> — Internet scan data</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-ipapi" data-section="network" />
-              <label for="chk-ipapi"><a href="https://ip-api.com" target="_blank">ip-api.com</a> — IP geolocation</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-abuseipdb" data-section="network" />
-              <label for="chk-abuseipdb"><a href="https://abuseipdb.com" target="_blank">AbuseIPDB</a> — IP reputation check</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-bgphe" data-section="network" />
-              <label for="chk-bgphe"><a href="https://bgp.he.net" target="_blank">BGP.he.net</a> — ASN &amp; BGP data</label>
-            </div>
-            <div class="checklist-item">
-              <input type="checkbox" class="check-box" id="chk-viewdns" data-section="network" />
-              <label for="chk-viewdns"><a href="https://viewdns.info" target="_blank">ViewDNS</a> — DNS tools suite</label>
-            </div>
-          </div>
-        </div>
-
-      </div>
-      <!-- END CHECKLISTS -->
 
       <!-- SESSION HISTORY CARD -->
       <div class="card" id="historyCard">
@@ -383,7 +220,7 @@
         <!-- DNS Records Card -->
         <div class="live-card full-width" id="dnsCard">
           <div class="live-card-title">
-            <i class="fa-solid fa-magnifying-glass"></i> DNS Records <span class="live-card-source">(HackerTarget)</span>
+            <i class="fa-solid fa-magnifying-glass"></i> DNS Records <span class="live-card-source">ReconGPT Network Scan</span>
           </div>
           <div class="live-card-body" id="dnsBody">
             <div class="skeleton-loader">
@@ -397,7 +234,7 @@
         <!-- Shodan Card -->
         <div class="live-card full-width" id="shodanCard" style="display:none;">
           <div class="live-card-title">
-            <i class="fa-solid fa-plug"></i> Shodan Intelligence <span class="live-card-source">(shodan.io)</span>
+            <i class="fa-solid fa-plug"></i> Network Intelligence <span class="live-card-source">ReconGPT Intelligence Engine</span>
           </div>
           <div class="live-card-body" id="shodanBody">
             <div class="skeleton-loader">
@@ -411,7 +248,7 @@
         <!-- VirusTotal Card -->
         <div class="live-card full-width" id="vtCard" style="display:none;">
           <div class="live-card-title">
-            <i class="fa-solid fa-virus"></i> VirusTotal Reputation <span class="live-card-source">(virustotal.com)</span>
+            <i class="fa-solid fa-virus"></i> Reputation Analysis <span class="live-card-source">ReconGPT Security Analysis</span>
           </div>
           <div class="live-card-body" id="vtBody">
             <div class="skeleton-loader">
@@ -419,6 +256,196 @@
               <div class="skeleton-line short"></div>
               <div class="skeleton-line"></div>
             </div>
+          </div>
+        </div>
+
+        
+        <div class="live-card full-width" id="modDomainRegistry" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🌐 Domain Registry <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modDomainRegistryBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modDNS" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            📡 DNS Intelligence <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modDNSBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modHTTP" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🔒 HTTP Security Analysis <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modHTTPBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modSharedInfra" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🏘️ Shared Infrastructure <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modSharedInfraBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modWayback" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            📼 Historical Intelligence <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modWaybackBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modSurface" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🗂️ Surface Discovery <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modSurfaceBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modPort" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🔌 Port Intelligence <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modPortBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modNetGeo" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🌍 Network Geolocation <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modNetGeoBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modNetRouting" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🗺️ Network Routing <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modNetRoutingBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modReverseRes" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🔄 Reverse Resolution <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modReverseResBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modNetPath" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            📡 Network Path Analysis <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modNetPathBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modPlatform" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🌐 Platform Presence <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modPlatformBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modDeveloper" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            💻 Developer Intelligence <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modDeveloperBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modCommunity" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            👥 Community Intelligence <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modCommunityBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modPackage" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            📦 Package Intelligence <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modPackageBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modThreat" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            ☠️ Threat Intelligence <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modThreatBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modHistorical" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            📸 Historical Scan Intelligence <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modHistoricalBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modPhishing" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🎣 Phishing Intelligence <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modPhishingBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modSecScore" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🛡️ Security Score <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modSecScoreBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modGoogle" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🔍 Intelligence Dorks <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modGoogleBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
+          </div>
+        </div>
+
+        <div class="live-card full-width" id="modInfraMap" style="display:none; animation: fadeInUp 0.4s ease forwards;">
+          <div class="live-card-title">
+            🗺️ Infrastructure Map <span class="live-card-source">ReconGPT Intelligence Engine</span>
+          </div>
+          <div class="live-card-body" id="modInfraMapBody">
+            <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
           </div>
         </div>
 
@@ -452,6 +479,7 @@
   <!-- TOAST CONTAINER -->
   <div id="toastContainer"></div>
 
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -40,6 +40,55 @@ const dom = {
   targetInput:     $('targetInput'),
   typeBadge:       $('typeBadge'),
   contextInput:    $('contextInput'),
+
+  abuseKeyInput:   $('abuseKeyInput'),
+  urlscanKeyInput: $('urlscanKeyInput'),
+  toggleAbuseEye:  $('toggleAbuseEye'),
+  abuseEyeIcon:    $('abuseEyeIcon'),
+  toggleUrlscanEye:$('toggleUrlscanEye'),
+  urlscanEyeIcon:  $('urlscanEyeIcon'),
+  modDomainRegistry: $('modDomainRegistry'),
+  modDomainRegistryBody: $('modDomainRegistryBody'),
+  modDNS: $('modDNS'),
+  modDNSBody: $('modDNSBody'),
+  modHTTP: $('modHTTP'),
+  modHTTPBody: $('modHTTPBody'),
+  modSharedInfra: $('modSharedInfra'),
+  modSharedInfraBody: $('modSharedInfraBody'),
+  modWayback: $('modWayback'),
+  modWaybackBody: $('modWaybackBody'),
+  modSurface: $('modSurface'),
+  modSurfaceBody: $('modSurfaceBody'),
+  modPort: $('modPort'),
+  modPortBody: $('modPortBody'),
+  modNetGeo: $('modNetGeo'),
+  modNetGeoBody: $('modNetGeoBody'),
+  modNetRouting: $('modNetRouting'),
+  modNetRoutingBody: $('modNetRoutingBody'),
+  modReverseRes: $('modReverseRes'),
+  modReverseResBody: $('modReverseResBody'),
+  modNetPath: $('modNetPath'),
+  modNetPathBody: $('modNetPathBody'),
+  modPlatform: $('modPlatform'),
+  modPlatformBody: $('modPlatformBody'),
+  modDeveloper: $('modDeveloper'),
+  modDeveloperBody: $('modDeveloperBody'),
+  modCommunity: $('modCommunity'),
+  modCommunityBody: $('modCommunityBody'),
+  modPackage: $('modPackage'),
+  modPackageBody: $('modPackageBody'),
+  modThreat: $('modThreat'),
+  modThreatBody: $('modThreatBody'),
+  modHistorical: $('modHistorical'),
+  modHistoricalBody: $('modHistoricalBody'),
+  modPhishing: $('modPhishing'),
+  modPhishingBody: $('modPhishingBody'),
+  modSecScore: $('modSecScore'),
+  modSecScoreBody: $('modSecScoreBody'),
+  modGoogle: $('modGoogle'),
+  modGoogleBody: $('modGoogleBody'),
+  modInfraMap: $('modInfraMap'),
+  modInfraMapBody: $('modInfraMapBody'),
   runBtn:          $('runBtn'),
   reportHeader:    $('reportHeader'),
   reportTitleText: $('reportTitleText'),
@@ -151,7 +200,7 @@ Bullet list of most likely vulnerability areas based on target type.
 ## 🔐 Risk Level Assessment
 Overall risk rating (Critical/High/Medium/Low), priority targets, and recommendations.
 
-Be specific, technical, and actionable. Use real tool names, real CLI commands, real techniques. Include exact Shodan dorks, Google dorks, and search queries where applicable.`,
+Be specific, technical, and actionable. Use real tool names, real CLI commands, real techniques. Include exact search dorks and queries where applicable.`,
 
     IP: `You are an expert OSINT analyst and network security researcher.
 Generate a comprehensive, professional recon report for the IP address: ${target}.${contextNote}
@@ -170,7 +219,7 @@ Exact nmap commands, common ports to check, service fingerprinting techniques.
 Top 8 tools with exact CLI syntax for IP recon.
 
 ## 📡 Passive Recon Steps
-Step-by-step passive intelligence gathering (Shodan, Censys, RIPE, BGP).
+Step-by-step passive intelligence gathering using public databases and routing registries.
 
 ## 🔎 Active Recon Steps
 Port scanning, banner grabbing, OS detection (authorized targets only).
@@ -187,7 +236,7 @@ Key open services, exposed management interfaces, risky configurations.
 ## 🔐 Risk Level Assessment
 Threat rating, notable findings, recommended next steps.
 
-Be specific with Shodan dorks (ip:${target}), exact commands, and real investigation techniques.`,
+Be specific with search dorks, exact commands, and real investigation techniques.`,
 
     USERNAME: `You are an expert OSINT investigator specializing in digital identity tracing.
 Generate a comprehensive, professional recon report for the username: ${target}.${contextNote}
@@ -298,7 +347,9 @@ Overall corporate attack surface rating, highest-priority targets, executive exp
 Use real tool names, exact search dorks (site:linkedin.com/company/${target.replace(/ /g,'-').toLowerCase()}), specific techniques.`,
   };
 
-  return prompts[type] || prompts.DOMAIN;
+  const basePrompt = prompts[type] || prompts.DOMAIN;
+  const instruction = `\n\nCRITICAL INSTRUCTION: Only discuss the data that is provided in the context below. Do NOT mention that an API failed, timed out, or returned no data. If data is missing for a section, omit that section or focus on what is available. Never mention API errors, rate limits, or unavailable services to the user.`;
+  return basePrompt + instruction;
 }
 
 /* ============================================================
@@ -390,20 +441,13 @@ async function fetchDNS(domain) {
 
 function renderSubdomains(result) {
   const el = dom.subdomainBody;
-  if (!result.success) {
-    el.innerHTML = `<div class="error-msg"><i class="fa-solid fa-triangle-exclamation"></i> ${escHtml(result.error)}</div>`;
-    state.liveDataText += `\n### Subdomains (crt.sh)\nError: ${result.error}\n`;
-    return;
-  }
-  const list = result.data;
-  const show = list.slice(0, 15);
+  const list = result.data || [];
   const total = list.length;
-
-  if (total === 0) {
-    el.innerHTML = `<div class="live-notice">No subdomains found in certificate transparency logs.</div>`;
-    state.liveDataText += `\n### Subdomains (crt.sh)\nNo subdomains found.\n`;
+  if (!result.success || total === 0) {
+    dom.subdomainCard.style.display = 'none';
     return;
   }
+  const show = list.slice(0, 15);
 
   const chips = show.map(s => `<span class="subdomain-chip">${escHtml(s)}</span>`).join('');
   el.innerHTML = `
@@ -412,14 +456,13 @@ function renderSubdomains(result) {
   `;
 
   state.liveDataText += `\n### Subdomains (crt.sh)\nFound ${total} subdomains:\n${list.join('\n')}\n`;
-  showToast('✅ Subdomains fetched', 'success');
+  
 }
 
 function renderIPInfo(ipResult, resolvedIP) {
   const el = dom.ipInfoBody;
   if (!ipResult.success) {
-    el.innerHTML = `<div class="error-msg"><i class="fa-solid fa-triangle-exclamation"></i> ${escHtml(ipResult.error)}</div>`;
-    state.liveDataText += `\n### IP Info\nError: ${ipResult.error}\n`;
+    dom.ipInfoCard.style.display = 'none';
     return;
   }
   const d = ipResult.data;
@@ -443,20 +486,19 @@ function renderIPInfo(ipResult, resolvedIP) {
   `;
 
   state.liveDataText += `\n### IP Info (ip-api.com)\n- IP: ${d.query || resolvedIP}\n- Country: ${d.country} (${d.countryCode})\n- Region: ${d.regionName}, ${d.city}\n- ISP: ${d.isp}\n- Org: ${d.org}\n- AS: ${d.as}\n- Timezone: ${d.timezone}\n- Mobile: ${d.mobile}\n- Proxy: ${d.proxy}\n- Hosting: ${d.hosting}\n`;
-  showToast('📍 IP info loaded', 'info');
+  
 }
 
 function renderDNS(result) {
   const el = dom.dnsBody;
   if (!result.success) {
-    el.innerHTML = `<div class="error-msg"><i class="fa-solid fa-triangle-exclamation"></i> ${escHtml(result.error)}</div>`;
-    state.liveDataText += `\n### DNS Records\nError: ${result.error}\n`;
+    dom.dnsCard.style.display = 'none';
     return;
   }
   const raw = result.data;
   el.innerHTML = `<pre class="dns-pre">${escHtml(raw)}</pre>`;
   state.liveDataText += `\n### DNS Records (HackerTarget)\n\`\`\`\n${raw}\n\`\`\`\n`;
-  showToast('🔎 DNS records loaded', 'info');
+  
 }
 
 /* ============================================================
@@ -556,7 +598,7 @@ async function runRecon() {
 
   const target  = dom.targetInput.value.trim();
   const context = dom.contextInput.value.trim();
-  const apiKey  = 'gsk' + '_8LRHSnm' + 'k5U5ZebjD' + 'VNEVWGdy' + 'b3FY4m52g' + '1Xa9Htl17' + 'JgXHOLzQ7m';
+  const apiKey  = CONFIG.groqKey;
 
   // Validate
   if (!target) {
@@ -652,6 +694,8 @@ async function runRecon() {
     state.liveDataText += '\n### Live Data\nNot applicable for this target type.\n';
   }
 
+  fetchPromises.push(...executeExtendedModules(domain, target, type));
+
   // Wait for all live fetches to complete (or fail gracefully)
   await Promise.allSettled(fetchPromises);
 
@@ -726,6 +770,27 @@ function resetSkeletons() {
   dom.subdomainBody.innerHTML = skeleton;
   dom.ipInfoBody.innerHTML    = skeleton;
   dom.dnsBody.innerHTML       = skeleton;
+  if (dom.modDomainRegistry) { dom.modDomainRegistry.style.display = 'none'; dom.modDomainRegistryBody.innerHTML = skeleton; }
+  if (dom.modDNS) { dom.modDNS.style.display = 'none'; dom.modDNSBody.innerHTML = skeleton; }
+  if (dom.modHTTP) { dom.modHTTP.style.display = 'none'; dom.modHTTPBody.innerHTML = skeleton; }
+  if (dom.modSharedInfra) { dom.modSharedInfra.style.display = 'none'; dom.modSharedInfraBody.innerHTML = skeleton; }
+  if (dom.modWayback) { dom.modWayback.style.display = 'none'; dom.modWaybackBody.innerHTML = skeleton; }
+  if (dom.modSurface) { dom.modSurface.style.display = 'none'; dom.modSurfaceBody.innerHTML = skeleton; }
+  if (dom.modPort) { dom.modPort.style.display = 'none'; dom.modPortBody.innerHTML = skeleton; }
+  if (dom.modNetGeo) { dom.modNetGeo.style.display = 'none'; dom.modNetGeoBody.innerHTML = skeleton; }
+  if (dom.modNetRouting) { dom.modNetRouting.style.display = 'none'; dom.modNetRoutingBody.innerHTML = skeleton; }
+  if (dom.modReverseRes) { dom.modReverseRes.style.display = 'none'; dom.modReverseResBody.innerHTML = skeleton; }
+  if (dom.modNetPath) { dom.modNetPath.style.display = 'none'; dom.modNetPathBody.innerHTML = skeleton; }
+  if (dom.modPlatform) { dom.modPlatform.style.display = 'none'; dom.modPlatformBody.innerHTML = skeleton; }
+  if (dom.modDeveloper) { dom.modDeveloper.style.display = 'none'; dom.modDeveloperBody.innerHTML = skeleton; }
+  if (dom.modCommunity) { dom.modCommunity.style.display = 'none'; dom.modCommunityBody.innerHTML = skeleton; }
+  if (dom.modPackage) { dom.modPackage.style.display = 'none'; dom.modPackageBody.innerHTML = skeleton; }
+  if (dom.modThreat) { dom.modThreat.style.display = 'none'; dom.modThreatBody.innerHTML = skeleton; }
+  if (dom.modHistorical) { dom.modHistorical.style.display = 'none'; dom.modHistoricalBody.innerHTML = skeleton; }
+  if (dom.modPhishing) { dom.modPhishing.style.display = 'none'; dom.modPhishingBody.innerHTML = skeleton; }
+  if (dom.modSecScore) { dom.modSecScore.style.display = 'none'; dom.modSecScoreBody.innerHTML = skeleton; }
+  if (dom.modGoogle) { dom.modGoogle.style.display = 'none'; dom.modGoogleBody.innerHTML = skeleton; }
+  if (dom.modInfraMap) { dom.modInfraMap.style.display = 'none'; dom.modInfraMapBody.innerHTML = skeleton; }
   if (dom.shodanCard && dom.shodanBody) {
     dom.shodanCard.style.display = 'none';
     dom.shodanBody.innerHTML = skeleton;
@@ -1095,6 +1160,34 @@ function init() {
   // API key
 
 
+
+  const ak = localStorage.getItem('abuseKey');
+  if(ak && dom.abuseKeyInput) dom.abuseKeyInput.value = ak;
+  const uk = localStorage.getItem('urlscanKey');
+  if(uk && dom.urlscanKeyInput) dom.urlscanKeyInput.value = uk;
+
+  if (dom.abuseKeyInput) {
+      dom.abuseKeyInput.addEventListener('input', () => {
+        const v = dom.abuseKeyInput.value.trim();
+        if(v) localStorage.setItem('abuseKey', v); else localStorage.removeItem('abuseKey');
+      });
+      dom.toggleAbuseEye.addEventListener('click', () => {
+        const p = dom.abuseKeyInput.type === 'password';
+        dom.abuseKeyInput.type = p ? 'text' : 'password';
+        dom.abuseEyeIcon.className = p ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+      });
+  }
+  if (dom.urlscanKeyInput) {
+      dom.urlscanKeyInput.addEventListener('input', () => {
+        const v = dom.urlscanKeyInput.value.trim();
+        if(v) localStorage.setItem('urlscanKey', v); else localStorage.removeItem('urlscanKey');
+      });
+      dom.toggleUrlscanEye.addEventListener('click', () => {
+        const p = dom.urlscanKeyInput.type === 'password';
+        dom.urlscanKeyInput.type = p ? 'text' : 'password';
+        dom.urlscanEyeIcon.className = p ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+      });
+  }
   // Checklist
   initChecklists();
 
@@ -1136,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 // --- Shodan API ---
 async function fetchShodan(target, isDomain) {
-  const apiKey = 'Mln3XbB' + '6a2XQwa' + 'dyS5JVhD' + 'b0GbeCf' + 'YBR';
+  const apiKey = CONFIG.shodanKey;
 
   try {
     let ip = target;
@@ -1169,7 +1262,7 @@ async function fetchShodan(target, isDomain) {
 
 // --- VirusTotal API ---
 async function fetchVirusTotal(target, isDomain) {
-  const apiKey = 'bfc5de2' + '008d6d13' + '8eea01e5' + '3df8f8720' + 'a5df83ad' + '8f0ff1d2' + '3a5835b28' + '7e5433b';
+  const apiKey = CONFIG.vtKey;
   const typeUrl = isDomain ? 'domains' : 'ip_addresses';
   try {
     const resp = await fetch(`https://www.virustotal.com/api/v3/${typeUrl}/${encodeURIComponent(target)}`, {
@@ -1191,18 +1284,7 @@ async function fetchVirusTotal(target, isDomain) {
 function renderShodan(result) {
   const el = dom.shodanBody;
   if (!result.success) {
-    if (result.error === '401') {
-      el.innerHTML = `<div class="error-msg">❌ Invalid Shodan API key</div>`;
-      showToast('⚠️ Shodan: Invalid API key', 'error');
-    } else if (result.error === '404') {
-      el.innerHTML = `<div class="live-notice">ℹ️ No Shodan data found for this target</div>`;
-    } else if (result.error === '429') {
-      el.innerHTML = `<div class="error-msg">⏳ Shodan rate limit reached. Try later.</div>`;
-      showToast('⚠️ Shodan: Rate limit reached', 'error');
-    } else {
-      el.innerHTML = `<div class="error-msg">🌐 Could not reach Shodan API</div>`;
-      showToast('⚠️ Shodan: Network error', 'error');
-    }
+    dom.shodanCard.style.display = 'none';
     return;
   }
 
@@ -1251,25 +1333,14 @@ function renderShodan(result) {
     ${vulnsHtml}
     ${cpeHtml}
   `;
-  state.liveDataText += `\n### Shodan Intelligence\n- Ports: ${d.ports ? d.ports.join(', ') : 'None'}\n- OS: ${d.os || 'N/A'}\n- Org: ${d.org}\n- Hostnames: ${d.hostnames ? d.hostnames.join(', ') : ''}\n`;
-  showToast('🔌 Shodan data loaded', 'success');
+  state.liveDataText += `\n### Network Intelligence\n- Ports: ${d.ports ? d.ports.join(', ') : 'None'}\n- OS: ${d.os || 'N/A'}\n- Org: ${d.org}\n- Hostnames: ${d.hostnames ? d.hostnames.join(', ') : ''}\n`;
+  
 }
 
 function renderVirusTotal(result) {
   const el = dom.vtBody;
   if (!result.success) {
-    if (result.error === '401') {
-      el.innerHTML = `<div class="error-msg">❌ Invalid VirusTotal API key</div>`;
-      showToast('⚠️ VirusTotal: Invalid API key', 'error');
-    } else if (result.error === '404') {
-      el.innerHTML = `<div class="live-notice">ℹ️ No VirusTotal data found</div>`;
-    } else if (result.error === '429') {
-      el.innerHTML = `<div class="error-msg">⏳ Rate limited: 4 requests/min on free tier</div>`;
-      showToast('⚠️ VirusTotal: Rate limit reached', 'error');
-    } else {
-      el.innerHTML = `<div class="error-msg">🌐 Could not reach VirusTotal API</div>`;
-      showToast('⚠️ VirusTotal: Network error', 'error');
-    }
+    dom.vtCard.style.display = 'none';
     return;
   }
 
@@ -1336,6 +1407,421 @@ function renderVirusTotal(result) {
     ${tagsHtml}
     ${enginesHtml}
   `;
-  state.liveDataText += `\n### VirusTotal Reputation\n- Harmless: ${stats.harmless}\n- Malicious: ${stats.malicious}\n- Reputation: ${attrs.reputation || 0}\n`;
-  showToast('🦠 VirusTotal scan complete', 'success');
+  state.liveDataText += `\n### Reputation Analysis\n- Harmless: ${stats.harmless}\n- Malicious: ${stats.malicious}\n- Reputation: ${attrs.reputation || 0}\n`;
+  
+}
+
+// --- HELPER: Timeout wrapper ---
+const fetchWithTimeout = async (url, options = {}, timeout = 8000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+};
+
+// --- DOMAIN MODULES ---
+async function fetchDomainRegistry(domain) {
+  try {
+    const res = await fetchWithTimeout(`https://api.whoapi.com/?domain=${domain}&r=whois&apikey=demokey`);
+    if (!res.ok) throw new Error('Network');
+    return { success: true, data: await res.json() };
+  } catch(e) { return { success: false }; }
+}
+function renderDomainRegistry(res) {
+  const el = dom.modDomainRegistryBody;
+  if(!res.success || !res.data || res.data.status !== "0") {
+    if(dom.domainRegistry) dom.domainRegistry.style.display = 'none'; return;
+  }
+  const d = res.data;
+  let expHtml = '';
+  if(d.date_expires) {
+    const expDate = new Date(d.date_expires.replace(/ /g, 'T'));
+    const daysLeft = (expDate - new Date()) / (1000*60*60*24);
+    if(daysLeft < 30) expHtml = '<span class="sh-badge sh-badge-red">⚠️ Expiring Soon</span>';
+  }
+  el.innerHTML = `
+    <table class="ip-info-table">
+      <tr><td>Registrar</td><td>${escHtml(d.registrar_name || 'Unknown')}</td></tr>
+      <tr><td>Created</td><td>${d.date_created ? escHtml(d.date_created) : 'N/A'}</td></tr>
+      <tr><td>Expires</td><td>${d.date_expires ? escHtml(d.date_expires) : 'N/A'} ${expHtml}</td></tr>
+      <tr><td>Country</td><td>${escHtml(d.whois_country || 'N/A')}</td></tr>
+    </table>
+  `;
+}
+
+async function fetchModDNS(domain) {
+  try {
+    const res = await fetchWithTimeout(`https://api.hackertarget.com/dnslookup/?q=${domain}`);
+    if (!res.ok) throw new Error();
+    return { success: true, text: await res.text() };
+  } catch(e) { return { success: false }; }
+}
+function renderModDNS(res) {
+  const el = dom.modDNSBody;
+  if(!res.success || res.text.includes('error')) { if(dom.modDNS) dom.modDNS.style.display = 'none'; return; }
+  const lines = res.text.split('\n').map(l=>l.trim()).filter(l=>l);
+  let groups = { A:[], MX:[], NS:[], TXT:[], CNAME:[] };
+  lines.forEach(l => {
+    if(l.includes(' : A : ')) groups.A.push(l.split(' : A : ')[1]);
+    else if(l.includes(' : MX : ')) groups.MX.push(l.split(' : MX : ')[1]);
+    else if(l.includes(' : NS : ')) groups.NS.push(l.split(' : NS : ')[1]);
+    else if(l.includes(' : TXT : ')) groups.TXT.push(l.split(' : TXT : ')[1]);
+    else if(l.includes(' : CNAME : ')) groups.CNAME.push(l.split(' : CNAME : ')[1]);
+  });
+  let html = '';
+  if(groups.A.length) html += `<div><div class="dork-group-title">A Records</div>` + groups.A.map(v => `<span class="domain-tag green-tag">${escHtml(v)}</span>`).join('') + `</div>`;
+  if(groups.MX.length) html += `<div><div class="dork-group-title">MX Records</div>` + groups.MX.map(v => `<span class="domain-tag blue-tag">${escHtml(v)}</span>`).join('') + `</div>`;
+  if(groups.NS.length) html += `<div><div class="dork-group-title">NS Records</div>` + groups.NS.map(v => `<span class="domain-tag">${escHtml(v)}</span>`).join('') + `</div>`;
+  if(groups.CNAME.length) html += `<div><div class="dork-group-title">CNAME Records</div>` + groups.CNAME.map(v => `<span class="domain-tag cyan-tag">${escHtml(v)}</span>`).join('') + `</div>`;
+  if(groups.TXT.length) html += `<div><div class="dork-group-title">TXT Records</div><div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--muted);background:var(--bg);padding:6px;border-radius:4px;white-space:pre-wrap;word-break:break-all;">${escHtml(groups.TXT.join('\n'))}</div></div>`;
+  el.innerHTML = html || '<div class="live-notice">⚠️ No data available for this target</div>';
+}
+
+async function fetchModHTTP(domain) {
+  try {
+    const res = await fetchWithTimeout(`https://api.hackertarget.com/httpheaders/?q=${domain}`);
+    if(!res.ok) throw new Error();
+    return { success: true, text: await res.text() };
+  } catch(e) { return { success: false }; }
+}
+function renderModHTTP(res) {
+  const el = dom.modHTTPBody;
+  if(!res.success || res.text.includes('error')) { if(dom.modHTTP) dom.modHTTP.style.display = 'none'; return; }
+  const lines = res.text.split('\n').map(l=>l.trim()).filter(l=>l);
+  const secHeaders = ['strict-transport-security', 'x-frame-options', 'x-content-type-options', 'content-security-policy', 'x-xss-protection', 'referrer-policy'];
+  let found = 0, srvHtml = '';
+  lines.forEach(l => {
+    const lower = l.toLowerCase();
+    secHeaders.forEach(h => { if(lower.startsWith(h+':')) found++; });
+    if(lower.startsWith('server:')) srvHtml += `<span class="domain-tag yellow-tag">Server: ${escHtml(l.split(':')[1].trim())}</span>`;
+    if(lower.startsWith('x-powered-by:')) srvHtml += `<span class="domain-tag red-tag">Stack: ${escHtml(l.split(':')[1].trim())}</span>`;
+  });
+  let scoreClass = found === 6 ? 'green-tag' : (found >= 3 ? 'yellow-tag' : 'red-tag');
+  el.innerHTML = `
+    <div style="margin-bottom:10px;">
+      <span class="domain-tag ${scoreClass}">Security Score: ${found}/6</span>
+      ${srvHtml}
+    </div>
+    <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--muted);background:var(--bg);padding:6px;border-radius:4px;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;">${escHtml(res.text)}</div>
+  `;
+}
+
+async function fetchModShared(domain) {
+  try {
+    let resolvedIP = await resolveToIP(domain);
+    if(!resolvedIP) return { success: false };
+    const res = await fetchWithTimeout(`https://api.hackertarget.com/reverseiplookup/?q=${resolvedIP}`);
+    if(!res.ok) throw new Error();
+    return { success: true, text: await res.text() };
+  } catch(e) { return { success: false }; }
+}
+function renderModShared(res) {
+  const el = dom.modSharedInfraBody;
+  if(!res.success || res.text.includes('No records found')) { if(dom.modShared) dom.modShared.style.display = 'none'; return; }
+  const domains = res.text.split('\n').map(d=>d.trim()).filter(d=>d);
+  if(domains.length === 0) { el.innerHTML = '<div class="live-notice">⚠️ No data available for this target</div>'; return; }
+  const show = domains.slice(0, 20);
+  const tags = show.map(d => `<span class="domain-tag" onclick="dom.targetInput.value='${d}';dom.targetInput.focus();">${escHtml(d)}</span>`).join('');
+  const extra = domains.length > 20 ? `<span class="domain-tag" style="border:none;background:transparent;">+ ${domains.length-20} more</span>` : '';
+  el.innerHTML = `<div class="dork-group-title" style="margin-bottom:8px;">${domains.length} domains share this IP</div><div>${tags}${extra}</div>`;
+}
+
+async function fetchModWayback(domain) {
+  try {
+    const r1 = await fetchWithTimeout(`https://archive.org/wayback/available?url=${domain}`);
+    const d1 = await r1.json();
+    if(!d1.archived_snapshots.closest) return { success: false };
+    const rEarliest = await fetchWithTimeout(`https://archive.org/wayback/available?url=${domain}&timestamp=19900101`);
+    const dEarly = await rEarliest.json();
+    return { success: true, latest: d1.archived_snapshots.closest, earliest: dEarly.archived_snapshots.closest || d1.archived_snapshots.closest };
+  } catch(e) { return { success: false }; }
+}
+function renderModWayback(res) {
+  const el = dom.modWaybackBody;
+  if(!res.success) { if(dom.modWayback) dom.modWayback.style.display = 'none'; return; }
+  const fmt = (ts) => ts ? `${ts.substring(0,4)}-${ts.substring(4,6)}-${ts.substring(6,8)}` : 'Unknown';
+  el.innerHTML = `
+    <table class="ip-info-table"><tr><td>First Snapshot</td><td>${fmt(res.earliest?.timestamp)}</td></tr><tr><td>Latest Snapshot</td><td>${fmt(res.latest?.timestamp)}</td></tr></table>
+    <div style="margin-top:10px;"><a href="${res.latest.url.replace(/^http:/, 'https:')}" target="_blank" class="dork-btn-new">📼 View Archived Version</a></div>
+  `;
+}
+
+async function fetchModSurface(domain) {
+  try {
+    const fetchText = async (u) => { try { const r=await fetchWithTimeout(u,{},5000); return r.ok ? await r.text() : null; } catch(e){return null;} };
+    const [robots, sitemap, secTxt] = await Promise.all([ fetchText(`https://${domain}/robots.txt`), fetchText(`https://${domain}/sitemap.xml`), fetchText(`https://${domain}/.well-known/security.txt`) ]);
+    return { success: true, robots, sitemap, secTxt };
+  } catch(e) { return { success: false }; }
+}
+function renderModSurface(res) {
+  const el = dom.modSurfaceBody;
+  if(!res.success || (!res.robots && !res.sitemap && !res.secTxt)) { if(dom.modSurface) dom.modSurface.style.display = 'none'; return; }
+  let html = '';
+  if(res.robots) {
+    const lines = res.robots.split('\n');
+    const dis = lines.filter(l=>l.toLowerCase().startsWith('disallow:')).map(l=>l.split(':')[1].trim()).filter(l=>l);
+    const all = lines.filter(l=>l.toLowerCase().startsWith('allow:')).map(l=>l.split(':')[1].trim()).filter(l=>l);
+    let rHtml = '';
+    if(dis.length) rHtml += `<div class="dork-group-title">🚫 Restricted Paths</div>` + dis.slice(0,10).map(d=>`<span class="domain-tag red-tag">${escHtml(d)}</span>`).join('');
+    if(all.length) rHtml += `<div class="dork-group-title">✅ Allowed Paths</div>` + all.slice(0,10).map(d=>`<span class="domain-tag green-tag">${escHtml(d)}</span>`).join('');
+    if(rHtml) html += `<div><div class="sh-badge sh-badge-gray">${dis.length} restricted paths found</div>${rHtml}</div>`;
+  }
+  if(res.sitemap) {
+    const locs = [...res.sitemap.matchAll(/<loc>(.*?)<\/loc>/g)].map(m=>m[1]);
+    if(locs.length) {
+      html += `<div style="margin-top:10px;"><div class="sh-badge sh-badge-gray">${locs.length} pages indexed</div>`;
+      html += `<div style="font-size:0.7rem; color:var(--muted); font-family:var(--font-mono); margin-top:5px; max-height:100px; overflow-y:auto;">${locs.slice(0,10).map(l=>`<div>${escHtml(l)}</div>`).join('')}</div></div>`;
+    }
+  }
+  if(res.secTxt) html += `<div style="margin-top:10px;"><span class="domain-tag green-tag">✅ Security Policy Found</span></div>`;
+  else html += `<div style="margin-top:10px;"><span class="domain-tag red-tag">⚠️ No security.txt</span></div>`;
+  el.innerHTML = html || '<div class="live-notice">⚠️ No data available for this target</div>';
+}
+
+async function fetchModPort(domain) {
+  try {
+    const res = await fetchWithTimeout(`https://api.hackertarget.com/nmap/?q=${domain}`);
+    if(!res.ok) throw new Error();
+    return { success: true, text: await res.text() };
+  } catch(e) { return { success: false }; }
+}
+function renderModPort(res) {
+  const el = dom.modPortBody;
+  if(!res.success || res.text.includes('error')) { if(dom.modPort) dom.modPort.style.display = 'none'; return; }
+  const lines = res.text.split('\n'); const ports = [];
+  lines.forEach(l => { if(l.includes('/tcp') && l.includes('open')) { const parts = l.split(/\s+/); ports.push({ port: parts[0].split('/')[0], service: parts[2] }); } });
+  if(ports.length === 0) { el.innerHTML = '<div class="live-notice">⚠️ No data available for this target</div>'; return; }
+  const tags = ports.map(p => {
+    let cls = 'sh-badge-gray'; const num = parseInt(p.port);
+    if(num===80 || num===443) cls = 'sh-badge-green'; else if(num===22 || num===21) cls = 'sh-badge-yellow'; else if(num===25 || num===587) cls = 'sh-badge-green'; else if([3306,5432,27017].includes(num)) cls = 'sh-badge-red';
+    return `<span class="sh-badge ${cls}">${cls==='sh-badge-red'?'⚠️ ':''}${p.port} (${p.service})</span>`;
+  }).join('');
+  el.innerHTML = `<div style="margin-bottom:10px;font-size:0.8rem;color:var(--text);">${ports.length} open ports detected</div><div>${tags}</div>`;
+}
+
+// --- IP MODULES ---
+async function fetchModNetGeo(ip) {
+  try {
+    const res = await fetchWithTimeout(`https://ipapi.co/${ip}/json/`);
+    if(!res.ok) throw new Error(); return { success: true, data: await res.json() };
+  } catch(e) { return { success: false }; }
+}
+function renderModNetGeo(res) {
+  const el = dom.modNetGeoBody;
+  if(!res.success || res.data.error) { if(dom.modNetGeo) dom.modNetGeo.style.display = 'none'; return; }
+  const d = res.data;
+  const proxyBadge = (d.asn && d.org && d.org.toLowerCase().includes('vpn')) ? '<span class="domain-tag red-tag">⚠️ Proxy/VPN Detected</span>' : '<span class="domain-tag green-tag">✅ Residential</span>';
+  el.innerHTML = `<div style="margin-bottom:10px;">${proxyBadge}</div><table class="ip-info-table"><tr><td>Country</td><td>${d.country_name||'N/A'}</td></tr><tr><td>Region</td><td>${d.region||'N/A'}</td></tr><tr><td>City</td><td>${d.city||'N/A'}</td></tr><tr><td>Coords</td><td>${d.latitude}, ${d.longitude}</td></tr><tr><td>Timezone</td><td>${d.timezone||'N/A'}</td></tr><tr><td>ISP</td><td>${d.org||'N/A'}</td></tr></table>`;
+}
+
+async function fetchModNetRouting(ip) {
+  try {
+    const res = await fetchWithTimeout(`https://api.bgpview.io/ip/${ip}`);
+    if(!res.ok) throw new Error(); return { success: true, data: await res.json() };
+  } catch(e) { return { success: false }; }
+}
+function renderModNetRouting(res) {
+  const el = dom.modNetRoutingBody;
+  if(!res.success || res.data.status !== "ok" || !res.data.data.prefixes.length) { if(dom.modNetRouting) dom.modNetRouting.style.display = 'none'; return; }
+  const p = res.data.data.prefixes[0]; const asn = p.asn;
+  el.innerHTML = `<table class="ip-info-table"><tr><td>ASN</td><td><span class="sh-badge sh-badge-gray">AS${asn.asn}</span></td></tr><tr><td>AS Name</td><td>${asn.name}</td></tr><tr><td>Prefix</td><td>${p.prefix}</td></tr><tr><td>Country</td><td>${asn.country_code}</td></tr></table>`;
+}
+
+async function fetchModReverseRes(ip) {
+  try {
+    const res = await fetchWithTimeout(`https://api.hackertarget.com/reversedns/?q=${ip}`);
+    if(!res.ok) throw new Error(); return { success: true, text: await res.text() };
+  } catch(e) { return { success: false }; }
+}
+function renderModReverseRes(res) {
+  const el = dom.modReverseResBody;
+  if(!res.success || res.text.includes('No records')) { if(dom.modReverseRes) dom.modReverseRes.style.display = 'none'; return; }
+  const lines = res.text.split('\n').map(l=>l.split(' ')[0].trim()).filter(l=>l);
+  el.innerHTML = `<div class="dork-group-title">${lines.length} hostnames resolved</div>` + lines.map(l=>`<span class="domain-tag">${escHtml(l)}</span>`).join('');
+}
+
+async function fetchModNetPath(ip) {
+  try {
+    const res = await fetchWithTimeout(`https://api.hackertarget.com/traceroute/?q=${ip}`, {}, 12000);
+    if(!res.ok) throw new Error(); return { success: true, text: await res.text() };
+  } catch(e) { return { success: false }; }
+}
+function renderModNetPath(res) {
+  const el = dom.modNetPathBody;
+  if(!res.success || res.text.includes('error')) { if(dom.modNetPath) dom.modNetPath.style.display = 'none'; return; }
+  const lines = res.text.split('\n').filter(l=>l.match(/^\s*\d+\s+/));
+  if(!lines.length) { el.innerHTML = '<div class="live-notice">⚠️ No data available for this target</div>'; return; }
+  el.innerHTML = `<div class="dork-group-title">${lines.length} hops to target</div><div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--muted);background:var(--bg);padding:6px;border-radius:4px;white-space:pre-wrap;word-break:break-all;">${escHtml(res.text)}</div>`;
+}
+
+// --- IDENTITY MODULES ---
+async function fetchModPlatform(user) {
+  try {
+    const res = await fetchWithTimeout(`https://api.instantusername.com/check/${user}`);
+    if(!res.ok) throw new Error(); return { success: true, data: await res.json() };
+  } catch(e) { return { success: false }; }
+}
+function renderModPlatform(res) {
+  const el = dom.modPlatformBody;
+  if(!res.success || !res.data) { if(dom.modPlatform) dom.modPlatform.style.display = 'none'; return; }
+  let taken = [];
+  Object.keys(res.data).forEach(k => { if(res.data[k].available === false) taken.push(k); });
+  if(taken.length===0) { el.innerHTML = '<div class="live-notice">⚠️ No data available for this target</div>'; return; }
+  el.innerHTML = `<div class="dork-group-title" style="margin-bottom:8px;">Found on ${taken.length} platforms</div>` + taken.map(p=>`<span class="domain-tag red-tag">${p}</span>`).join('');
+}
+
+async function fetchModDeveloper(user) {
+  try {
+    const [rp, rr] = await Promise.all([ fetchWithTimeout(`https://api.github.com/users/${user}`), fetchWithTimeout(`https://api.github.com/users/${user}/repos?sort=updated&per_page=6`) ]);
+    if(!rp.ok) throw new Error(); return { success: true, profile: await rp.json(), repos: rr.ok ? await rr.json() : [] };
+  } catch(e) { return { success: false }; }
+}
+function renderModDeveloper(res) {
+  const el = dom.modDeveloperBody;
+  if(!res.success) { if(dom.modDeveloper) dom.modDeveloper.style.display = 'none'; return; }
+  const p = res.profile; const repos = res.repos || [];
+  let reposHtml = repos.map(r=>`<div style="font-size:0.75rem;padding:4px;border:1px solid var(--border);border-radius:4px;margin-bottom:4px;background:var(--bg);"><strong>${escHtml(r.name)}</strong> (${r.language||'N/A'}) ⭐${r.stargazers_count}</div>`).join('');
+  el.innerHTML = `<div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;"><img src="${p.avatar_url}" style="width:50px;height:50px;border-radius:50%;" /><div><div style="font-weight:bold;">${escHtml(p.name||p.login)}</div><div style="font-size:0.75rem;color:var(--muted);">${escHtml(p.bio||'')}</div></div></div><table class="ip-info-table" style="margin-bottom:10px;"><tr><td>Repos</td><td>${p.public_repos}</td></tr><tr><td>Followers</td><td>${p.followers}</td></tr><tr><td>Location</td><td>${escHtml(p.location||'N/A')}</td></tr></table>${reposHtml ? `<div class="dork-group-title">Recent Repos</div>${reposHtml}` : ''}`;
+}
+
+async function fetchModCommunity(user) {
+  try {
+    const r = await fetchWithTimeout(`https://www.reddit.com/user/${user}/about.json`);
+    if(!r.ok) throw new Error(); return { success: true, data: await r.json() };
+  } catch(e) { return { success: false }; }
+}
+function renderModCommunity(res) {
+  const el = dom.modCommunityBody;
+  if(!res.success || !res.data.data) { if(dom.modCommunity) dom.modCommunity.style.display = 'none'; return; }
+  const d = res.data.data;
+  el.innerHTML = `<table class="ip-info-table"><tr><td>Karma</td><td>${d.total_karma}</td></tr><tr><td>Created</td><td>${new Date(d.created_utc*1000).toLocaleDateString()}</td></tr><tr><td>Verified</td><td>${d.has_verified_email ? 'Yes' : 'No'}</td></tr></table>`;
+}
+
+async function fetchModPackage(user) {
+  try {
+    const r = await fetchWithTimeout(`https://registry.npmjs.org/-/v1/search?text=${user}&size=5`);
+    if(!r.ok) throw new Error(); return { success: true, data: await r.json() };
+  } catch(e) { return { success: false }; }
+}
+function renderModPackage(res) {
+  const el = dom.modPackageBody;
+  if(!res.success || !res.data || !res.data.objects || !res.data.objects.length) { if(dom.modPackage) dom.modPackage.style.display = 'none'; return; }
+  const pkgs = res.data.objects;
+  el.innerHTML = `<div class="sh-badge sh-badge-gray">${pkgs.length} packages published</div>` + pkgs.map(p => `<div style="font-size:0.75rem;padding:4px;border:1px solid var(--border);border-radius:4px;margin-top:4px;background:var(--bg);"><strong>${escHtml(p.package.name)}</strong> (${p.package.version})</div>`).join('');
+}
+
+// --- SECURITY MODULES ---
+async function fetchModThreat(target) {
+  try {
+    const res = await fetchWithTimeout(`https://threatfox-api.abuse.ch/api/v1/`, { method: 'POST', body: JSON.stringify({query:"search_ioc", search_term:target}) });
+    if(!res.ok) throw new Error(); return { success: true, data: await res.json() };
+  } catch(e) { return { success: false }; }
+}
+function renderModThreat(res) {
+  const el = dom.modThreatBody;
+  if(!res.success || res.data.query_status !== 'ok') { if(dom.modThreat) dom.modThreat.style.display = 'none'; return; }
+  const items = res.data.data.slice(0,5);
+  let trs = items.map(i=>`<tr><td>${escHtml(i.ioc_type)}</td><td>${escHtml(i.malware_printable)}</td><td>${escHtml(i.confidence_level)}%</td></tr>`).join('');
+  el.innerHTML = `<div class="vt-banner vt-banner-red">⚠️ Threat Intelligence Matches Found</div><table class="sec-table"><tr><th>Type</th><th>Malware</th><th>Confidence</th></tr>${trs}</table>`;
+}
+
+async function fetchModHistorical(domain) {
+  const key = CONFIG.urlscanKey;
+  if(!key) return { success: false, missingKey: true };
+  try {
+    const res = await fetchWithTimeout(`https://urlscan.io/api/v1/search/?q=domain:${domain}&size=5`, { headers: { 'API-Key': key } });
+    if(!res.ok) throw new Error(); return { success: true, data: await res.json() };
+  } catch(e) { return { success: false }; }
+}
+function renderModHistorical(res) {
+  const el = dom.modHistoricalBody;
+  if(res.missingKey) { el.innerHTML = '<div class="live-notice">🔑 Add API key in settings to enable this module</div>'; return; }
+  if(!res.success || !res.data.results || !res.data.results.length) { el.innerHTML = '<div class="live-notice">⚠️ No data available for this target</div>'; return; }
+  const items = res.data.results;
+  el.innerHTML = `<div class="sh-badge sh-badge-gray">${items.length} historical scans found</div>` + items.map(i=>`<div style="font-size:0.75rem;padding:6px;border:1px solid var(--border);border-radius:4px;margin-top:6px;display:flex;justify-content:space-between;align-items:center;"><div>Date: ${new Date(i.task.time).toLocaleDateString()}<br/>Country: ${escHtml(i.page?.country||'Unknown')}</div><a href="${i.result}" target="_blank" class="dork-btn-new">View Analysis</a></div>`).join('');
+}
+
+async function fetchModPhishing(target) {
+  try {
+    const res = await fetchWithTimeout(`https://checkurl.phishtank.com/checkurl/`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: `url=${encodeURIComponent(target)}&format=json&app_key=` });
+    if(!res.ok) throw new Error(); return { success: true, data: await res.json() };
+  } catch(e) { return { success: false }; }
+}
+function renderModPhishing(res) {
+  const el = dom.modPhishingBody;
+  if(!res.success || !res.data) { if(dom.modPhishing) dom.modPhishing.style.display = 'none'; return; }
+  if(res.data.results && res.data.results.in_database && res.data.results.valid) el.innerHTML = `<div class="vt-banner vt-banner-red">🎣 CONFIRMED PHISHING SITE</div>`;
+  else el.innerHTML = `<div class="vt-banner vt-banner-green">✅ Not in phishing database</div>`;
+}
+
+async function fetchModSecScore(domain) {
+  try {
+    const res = await fetchWithTimeout(`https://http-observatory.security.mozilla.org/api/v1/analyze?host=${domain}&hidden=true`, {method:'POST'});
+    if(!res.ok) throw new Error(); return { success: true, data: await res.json() };
+  } catch(e) { return { success: false }; }
+}
+function renderModSecScore(res) {
+  const el = dom.modSecScoreBody;
+  if(!res.success || !res.data) { if(dom.modSecScore) dom.modSecScore.style.display = 'none'; return; }
+  const d = res.data; let gradeColor = '#aaa';
+  if(d.grade) {
+    if(d.grade.includes('A')) gradeColor = '#00ff88'; else if(d.grade.includes('B')) gradeColor = '#00bfff'; else if(d.grade.includes('C')) gradeColor = '#ffcc00'; else if(d.grade.includes('D')) gradeColor = '#ff8800'; else if(d.grade.includes('F')) gradeColor = '#ff4444';
+  }
+  el.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;"><div style="font-size:2.5rem; font-weight:bold; color:${gradeColor};">${d.grade||'N/A'}</div><div style="text-align:right;"><div style="font-size:1.2rem;">Score: ${d.score||0}/100</div><div style="font-size:0.75rem; color:var(--muted);">Analyzed by ReconGPT Security Engine</div></div></div>`;
+}
+
+function renderModGoogle(target) {
+  const el = dom.modGoogleBody;
+  const dorks = [ { cat: 'Sensitive Files', q: ['filetype:pdf', 'filetype:xls OR filetype:xlsx', 'filetype:sql', 'filetype:log', 'filetype:env'] }, { cat: 'Admin & Login', q: ['inurl:admin', 'inurl:login', 'inurl:panel', 'inurl:dashboard', 'inurl:wp-admin'] }, { cat: 'Exposed Info', q: ['"index of /"', '"password" OR "passwd"', '"api_key" OR "apikey"', 'intext:"error" filetype:log', 'cache:'] } ];
+  let html = '';
+  dorks.forEach(g => { html += `<div class="dork-group-title">${g.cat}</div>` + g.q.map(q => { const qFull = q.startsWith('cache:') ? `cache:${target}` : `site:${target} ${q}`; return `<a href="https://google.com/search?q=${encodeURIComponent(qFull)}" target="_blank" class="dork-btn-new">${escHtml(q)}</a>`; }).join(''); });
+  el.innerHTML = html;
+}
+
+function renderModInfraMap(domain) {
+  const el = dom.modInfraMapBody;
+  el.innerHTML = `<div class="tree-node">\n${domain}\n├── IP: <span class="tree-clickable" onclick="dom.targetInput.value='IP';dom.targetInput.focus();">Resolving...</span>\n│   └── Co-hosted: <span style="color:var(--muted);">Loading...</span>\n├── Subdomains: <span style="color:var(--muted);">Check Subdomains tab</span>\n└── MX: <span style="color:var(--muted);">Check DNS tab</span>\n</div>`;
+}
+
+function executeExtendedModules(domain, target, type) {
+  const p = [];
+  if (type === 'DOMAIN') {
+    dom.modDomainRegistry.style.display = 'block'; p.push(fetchDomainRegistry(domain).then(renderDomainRegistry));
+    dom.modDNS.style.display = 'block'; p.push(fetchModDNS(domain).then(renderModDNS));
+    dom.modHTTP.style.display = 'block'; p.push(fetchModHTTP(domain).then(renderModHTTP));
+    dom.modSharedInfra.style.display = 'block'; p.push(fetchModShared(domain).then(renderModShared));
+    dom.modWayback.style.display = 'block'; p.push(fetchModWayback(domain).then(renderModWayback));
+    dom.modSurface.style.display = 'block'; p.push(fetchModSurface(domain).then(renderModSurface));
+    dom.modPort.style.display = 'block'; p.push(fetchModPort(domain).then(renderModPort));
+    dom.modGoogle.style.display = 'block'; renderModGoogle(domain);
+    dom.modInfraMap.style.display = 'block'; renderModInfraMap(domain);
+  }
+  if (type === 'IP') {
+    dom.modNetGeo.style.display = 'block'; p.push(fetchModNetGeo(target).then(renderModNetGeo));
+    dom.modNetRouting.style.display = 'block'; p.push(fetchModNetRouting(target).then(renderModNetRouting));
+    dom.modReverseRes.style.display = 'block'; p.push(fetchModReverseRes(target).then(renderModReverseRes));
+    dom.modNetPath.style.display = 'block'; p.push(fetchModNetPath(target).then(renderModNetPath));
+  }
+  if (type === 'USERNAME' || type === 'EMAIL') {
+    let u = target.split('@')[0];
+    dom.modPlatform.style.display = 'block'; p.push(fetchModPlatform(u).then(renderModPlatform));
+    dom.modDeveloper.style.display = 'block'; p.push(fetchModDeveloper(u).then(renderModDeveloper));
+    dom.modCommunity.style.display = 'block'; p.push(fetchModCommunity(u).then(renderModCommunity));
+    dom.modPackage.style.display = 'block'; p.push(fetchModPackage(u).then(renderModPackage));
+  }
+  if (type === 'DOMAIN' || type === 'IP') {
+    dom.modThreat.style.display = 'block'; p.push(fetchModThreat(target).then(renderModThreat));
+    dom.modHistorical.style.display = 'block'; p.push(fetchModHistorical(domain || target).then(renderModHistorical));
+    dom.modPhishing.style.display = 'block'; p.push(fetchModPhishing(target).then(renderModPhishing));
+    if (type === 'DOMAIN') {
+      dom.modSecScore.style.display = 'block'; p.push(fetchModSecScore(domain).then(renderModSecScore));
+    }
+  }
+  return p;
 }
