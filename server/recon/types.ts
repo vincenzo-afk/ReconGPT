@@ -46,6 +46,16 @@ export type ModuleResult = {
   notices?: string[];
 };
 
+export type ModuleCoverage = {
+  moduleId: string;
+  label: string;
+  category: string;
+  status: "completed" | "no-findings" | "failed";
+  findingCount: number;
+  notices: string[];
+  error?: string;
+};
+
 export type ModuleDefinition = {
   id: string;
   label: string;

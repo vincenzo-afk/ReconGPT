@@ -22,3 +22,10 @@
 - [x] Run safe end-to-end recon tests only against authorized public test targets such as example.com; verify SSE delivery and UI behavior on desktop and mobile.
 - [x] Transfer previously recovered provider credentials into the secure project secret settings; raw values remain deliberately absent from source control and the client.
 - [x] Replace the legacy GitHub repository source with the rebuilt ReconGPT application, then commit and push it.
+- [x] Diagnose and repair the failed recon-run database update so completed runs, results, and AI summaries persist reliably.
+- [x] Add payload-size safeguards, error-visible run completion, and compact evidence serialization to prevent oversized result writes from discarding a completed investigation.
+- [x] Improve AI analysis grounding so summaries distinguish direct evidence, inferred context, unavailable sources, and target-scope limitations without overclaiming.
+- [x] Expand safe deep passive research with richer public source adapters, independent source coverage indicators, and graceful provider-specific fallbacks.
+- [x] Add user-facing source health, coverage-gap, and module-failure explanations to the mission-control workspace and report outputs.
+- [x] Add regression tests for failed persistence, large evidence sets, AI grounding, source fallback, and an authorized public target end-to-end recon run.
+- [x] Validate the repair, checkpoint it, and push the updated ReconGPT source to GitHub.

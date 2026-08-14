@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateRisk, graphFor, providerStatus } from "./service";
+import { calculateRisk, compactValue, graphFor, groundedAnalysis, providerStatus } from "./service";
 import { parseTarget } from "./target";
 
 describe("ReconGPT provider vault reporting", () => {
@@ -12,6 +12,24 @@ describe("ReconGPT provider vault reporting", () => {
 });
 
 describe("ReconGPT evidence modeling", () => {
+  it("always separates direct evidence, inference, unavailable sources, and limitations", () => {
+    const summary = groundedAnalysis("## Executive assessment\nA cautious overview.", "example.com", [{ title: "MX record", category: "Domain", severity: "low", confidence: 90, sourceUrl: "https://example.com/evidence" }] as never, [{ moduleId: "archive", label: "Wayback History", category: "Historical", status: "failed", findingCount: 0, notices: [], error: "rate limited" }, { moduleId: "dns", label: "DNS posture", category: "Domain", status: "no-findings", findingCount: 0, notices: [] }] as never, 8);
+    expect(summary).toContain("## Direct evidence");
+    expect(summary).toContain("## Cautious interpretation");
+    expect(summary).toContain("## Unavailable or incomplete sources");
+    expect(summary).toContain("Wayback History");
+    expect(summary).toContain("not proof of absence");
+    expect(summary).toContain("## Evidence limitations");
+  });
+
+  it("bounds oversized nested public evidence before it is stored or streamed", () => {
+    const source = { long: "x".repeat(9_000), rows: Array.from({ length: 120 }, (_, index) => ({ index, value: "y".repeat(100) })) };
+    const compacted = compactValue(source) as { long: string; rows: unknown[] };
+    expect(compacted.long).toContain("[truncated");
+    expect(compacted.rows).toHaveLength(81);
+    expect(JSON.stringify(compacted).length).toBeLessThan(JSON.stringify(source).length);
+  });
+
   it("derives a bounded evidence score from verified finding severities", () => {
     expect(calculateRisk([])).toEqual({ score: 0, level: "low" });
     expect(calculateRisk([{ severity: "high" }, { severity: "medium" }] as never)).toEqual({ score: 64, level: "high" });

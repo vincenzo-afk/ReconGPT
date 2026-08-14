@@ -61,6 +61,24 @@ async function dnsRecords(target: ReconTarget): Promise<ModuleResult> {
   return { findings: [record] };
 }
 
+async function dnsCrosscheck(target: ReconTarget): Promise<ModuleResult> {
+  const host = hostOf(target);
+  const recordTypes = ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "CAA"];
+  const responses = await Promise.all(recordTypes.map(async type => {
+    try {
+      const payload = await fetchJson<{ Status?: number; Answer?: Array<{ name?: string; type?: number; TTL?: number; data?: string }> }>(`https://dns.google/resolve?name=${encodeURIComponent(host)}&type=${type}`);
+      return { type, status: payload.Status ?? null, answers: (payload.Answer || []).slice(0, 100).map(answer => ({ name: answer.name, type: answer.type, ttl: answer.TTL, data: answer.data })) };
+    } catch (error) {
+      return { type, status: null, answers: [], error: error instanceof Error ? error.message : "DNS-over-HTTPS unavailable" };
+    }
+  }));
+  const unavailable = responses.filter(item => item.error).map(item => item.type);
+  const answerCount = responses.reduce((sum, item) => sum + item.answers.length, 0);
+  const record = finding("dns-crosscheck", "Domain", "Independent DNS-over-HTTPS cross-check", `Google Public DNS returned ${answerCount} public record answer(s) across ${recordTypes.length - unavailable.length}/${recordTypes.length} checked record type(s). Empty responses are not treated as an absence guarantee.`, { host, source: "Google Public DNS DoH", checks: responses, unavailableRecordTypes: unavailable, limitation: "DNS results are point-in-time and resolver-dependent; an empty response is not a conclusive absence claim." }, unavailable.length ? "medium" : "low", unavailable.length ? 72 : 93, `https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`);
+  record.entities = [{ type: "domain", value: host, confidence: 96 }];
+  return { findings: [record], notices: unavailable.length ? [`DNS-over-HTTPS did not respond for: ${unavailable.join(", ")}.`] : undefined };
+}
+
 async function rdapWhois(target: ReconTarget): Promise<ModuleResult> {
   const host = rootDomain(hostOf(target));
   const data = await fetchJson<Record<string, unknown>>(`https://rdap.org/domain/${encodeURIComponent(host)}`);
@@ -182,6 +200,25 @@ async function wayback(target: ReconTarget): Promise<ModuleResult> {
   return { findings: [record] };
 }
 
+async function commonCrawl(target: ReconTarget): Promise<ModuleResult> {
+  const domain = rootDomain(hostOf(target));
+  const indexes = await fetchJson<Array<{ id?: string; "cdx-api"?: string }>>("https://index.commoncrawl.org/collinfo.json");
+  const latest = indexes.find(index => index["cdx-api"]);
+  const endpoint = latest?.["cdx-api"];
+  if (!endpoint) return { findings: [], notices: ["Common Crawl did not publish an available index endpoint."] };
+  const raw = await fetchText(`${endpoint}?url=*.${encodeURIComponent(domain)}/*&output=json&filter=status:200&collapse=urlkey&limit=250`);
+  const rows = raw.split("\n").filter(Boolean).slice(0, 250).flatMap(line => {
+    try {
+      const item = JSON.parse(line) as Record<string, unknown>;
+      return [{ url: String(item.url || ""), timestamp: String(item.timestamp || ""), mime: String(item.mime || ""), status: String(item.status || ""), digest: String(item.digest || "") }];
+    } catch { return []; }
+  }).filter(item => item.url);
+  const documentUrls = rows.filter(item => /\.(pdf|docx?|xlsx?|csv|pptx?|json|xml|txt|log)(?:\?|$)/i.test(item.url));
+  const record = finding("common-crawl", "Historical", "Common Crawl public-web index", `Common Crawl's latest public index returned ${rows.length} deduplicated historical URL record(s), including ${documentUrls.length} document-like URL(s). Indexed URLs are historical references, not a claim that content remains available.`, { domain, index: latest?.id || "latest", indexEndpoint: endpoint, total: rows.length, records: rows.slice(0, 150), documentUrls: documentUrls.slice(0, 60), limitation: "Common Crawl index entries are passive historical metadata. ReconGPT does not retrieve page bodies or restricted content from the archive." }, "low", 89, `${endpoint}?url=*.${encodeURIComponent(domain)}/*&output=json`);
+  record.entities = [{ type: "domain", value: domain, confidence: 95 }, ...rows.slice(0, 50).map(item => ({ type: "url" as const, value: item.url, confidence: 88 }))];
+  return { findings: [record] };
+}
+
 async function dorkBuilder(target: ReconTarget, options: ReconOptions): Promise<ModuleResult> {
   const anchor = target.type === "company" ? `"${target.normalized}"` : `site:${rootDomain(hostOf(target))}`;
   const base = [`${anchor} filetype:pdf`, `${anchor} filetype:xlsx`, `${anchor} inurl:login`, `${anchor} intitle:admin`, `${anchor} (filetype:env OR filetype:log)`, `${anchor} (backup OR archive OR database)`];
@@ -274,6 +311,7 @@ async function asnResearch(target: ReconTarget): Promise<ModuleResult> {
 export const MODULES: ModuleDefinition[] = [
   { id: "crt-subdomains", label: "Certificate Transparency", category: "Domain", appliesTo: ["domain", "url"], execute: crtSh },
   { id: "dns-posture", label: "DNS & Mail Posture", category: "Domain", appliesTo: ["domain", "url", "email"], execute: dnsRecords },
+  { id: "dns-crosscheck", label: "DNS-over-HTTPS Cross-check", category: "Domain", appliesTo: ["domain", "url", "email"], execute: dnsCrosscheck },
   { id: "rdap-whois", label: "RDAP / WHOIS", category: "Domain", appliesTo: ["domain", "url"], execute: rdapWhois },
   { id: "tls-certificate", label: "TLS Certificate", category: "Infrastructure", appliesTo: ["domain", "url"], execute: tlsCertificate },
   { id: "http-fingerprint", label: "HTTP Fingerprint", category: "Infrastructure", appliesTo: ["domain", "url"], execute: httpFingerprint },
@@ -285,6 +323,7 @@ export const MODULES: ModuleDefinition[] = [
   { id: "virustotal", label: "VirusTotal Reputation", category: "Threat Intelligence", appliesTo: ["domain", "url", "ip"], requiresKey: "virustotal", execute: virusTotal },
   { id: "urlscan", label: "urlscan.io History", category: "Web Intelligence", appliesTo: ["domain", "url"], requiresKey: "urlscan", execute: urlscan },
   { id: "wayback", label: "Wayback History", category: "Historical", appliesTo: ["domain", "url"], execute: wayback },
+  { id: "common-crawl", label: "Common Crawl Index", category: "Historical", appliesTo: ["domain", "url"], execute: commonCrawl },
   { id: "research-dorks", label: "Research Query Builder", category: "Research", appliesTo: ["domain", "url", "company"], execute: dorkBuilder },
   { id: "public-web-surface", label: "Public Web Surface", category: "Web Intelligence", appliesTo: ["domain", "url"], execute: publicWebSurface },
   { id: "document-metadata", label: "Document HTTP Metadata", category: "Document Intelligence", appliesTo: ["url"], execute: documentMetadata },

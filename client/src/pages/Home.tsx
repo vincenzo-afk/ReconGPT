@@ -32,7 +32,8 @@ import Wifi from "lucide-react/dist/esm/icons/wifi";
 
 type Finding = { id: string; moduleId: string; category: string; title: string; summary: string; severity: "low" | "medium" | "high" | "critical"; confidence: number; sourceUrl?: string; data: Record<string, unknown> };
 type StreamItem = { type: string; runId: string; moduleId?: string; message: string; data?: unknown; timestamp: string };
-type ReconResult = { target?: { normalized?: string; type?: string }; findings?: Finding[]; entities?: GraphNode[]; relationships?: GraphEdge[]; risk?: { score: number; level: string }; summary?: string; completedAt?: string };
+type ModuleCoverage = { moduleId: string; label: string; category: string; status: "completed" | "no-findings" | "failed"; findingCount: number; notices: string[]; error?: string };
+type ReconResult = { target?: { normalized?: string; type?: string }; findings?: Finding[]; entities?: GraphNode[]; relationships?: GraphEdge[]; risk?: { score: number; level: string }; summary?: string; coverage?: ModuleCoverage[]; persistence?: { status: "saved" | "degraded"; warning?: string }; completedAt?: string };
 
 const nav = ["Operations", "Findings", "Graph", "History", "Settings"] as const;
 const severityClass = { low: "severity-low", medium: "severity-medium", high: "severity-high", critical: "severity-critical" };
@@ -76,6 +77,7 @@ export default function Home() {
 
   const result = liveResult || (selectedRunQuery.data?.results as ReconResult | null) || null;
   const findings = result?.findings || [];
+  const coverage = result?.coverage || [];
   const findingCategories = useMemo(() => Array.from(new Set(findings.map(item => item.category))).sort(), [findings]);
   const visibleFindings = useMemo(() => findings.filter(item => (severityFilter === "all" || item.severity === severityFilter) && (categoryFilter === "all" || item.category === categoryFilter)), [findings, severityFilter, categoryFilter]);
   const providerStatus = settingsQuery.data?.providerStatus;
@@ -140,6 +142,7 @@ export default function Home() {
 
     <section className="mission-main">
       <header className="topbar"><div><p className="eyebrow"><Wifi size={13} /> LIVE INTELLIGENCE WORKSPACE</p><h1>{activeNav === "Operations" ? "Mission control" : activeNav}</h1></div><div className="topbar-actions"><span className="clock">{new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>{activeRunId ? <span className="run-id">RUN {activeRunId}</span> : null}</div></header>
+      {activeNav === "Findings" && result ? <SourceCoverage coverage={coverage} persistence={result.persistence} /> : null}
 
       {activeNav === "Operations" ? <div className="workspace-grid">
         <section className="command-deck panel"><div className="panel-heading"><div><p className="eyebrow"><Command size={13} /> RECON COMMAND</p><h2>Launch a passive investigation</h2></div><span className="mode-badge">{isRunning ? "streaming" : "ready"}</span></div>
@@ -164,3 +167,11 @@ export default function Home() {
 }
 
 function Metric({ label, value, tone }: { label: string; value: string | number; tone: string }) { return <div className={`metric metric-${tone}`}><span>{label}</span><strong>{value}</strong></div>; }
+
+function SourceCoverage({ coverage, persistence }: { coverage: ModuleCoverage[]; persistence?: ReconResult["persistence"] }) {
+  const completed = coverage.filter(item => item.status === "completed").length;
+  const empty = coverage.filter(item => item.status === "no-findings").length;
+  const failed = coverage.filter(item => item.status === "failed").length;
+  const gaps = coverage.filter(item => item.status !== "completed" || item.notices.length > 0);
+  return <section className="source-coverage" aria-label="Collection source coverage"><div><p className="eyebrow"><Wifi size={13} /> SOURCE COVERAGE</p><strong>{completed}/{coverage.length} sources returned evidence</strong><span>{empty} no-result · {failed} unavailable</span></div><p>{gaps.length ? gaps.slice(0, 3).map(item => `${item.label}: ${item.status === "failed" ? item.error || "unavailable" : item.notices.join(" ") || "no evidence returned"}`).join(" | ") : "All selected modules returned evidence. Public-source results remain point-in-time observations, not proof of absence or exhaustive coverage."}</p>{persistence?.status === "degraded" ? <p className="source-warning"><ShieldAlert size={14} /> Live result delivered; run-history storage was degraded. {persistence.warning || "Rerun if a persisted copy is required."}</p> : null}</section>;
+}

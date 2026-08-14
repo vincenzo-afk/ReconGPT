@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mediumtext, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -34,8 +34,8 @@ export const reconRuns = mysqlTable("reconRuns", {
   status: mysqlEnum("status", ["queued", "running", "completed", "failed"]).notNull().default("queued"),
   riskScore: int("riskScore").notNull().default(0),
   riskLevel: mysqlEnum("riskLevel", ["low", "medium", "high", "critical"]).notNull().default("low"),
-  summary: text("summary"),
-  resultsJson: text("resultsJson"),
+  summary: mediumtext("summary"),
+  resultsJson: mediumtext("resultsJson"),
   error: text("error"),
   startedAt: timestamp("startedAt").defaultNow().notNull(),
   completedAt: timestamp("completedAt"),
@@ -47,7 +47,7 @@ export const reconEvents = mysqlTable("reconEvents", {
   moduleId: varchar("moduleId", { length: 96 }).notNull(),
   eventType: mysqlEnum("eventType", ["queued", "started", "finding", "completed", "failed", "notice"]).notNull(),
   message: text("message").notNull(),
-  payloadJson: text("payloadJson"),
+  payloadJson: mediumtext("payloadJson"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -58,7 +58,7 @@ export const reconEntities = mysqlTable("reconEntities", {
   value: varchar("value", { length: 1024 }).notNull(),
   label: varchar("label", { length: 1024 }).notNull(),
   confidence: int("confidence").notNull().default(70),
-  metadataJson: text("metadataJson"),
+  metadataJson: mediumtext("metadataJson"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

@@ -11,6 +11,6 @@ export const ENV = {
   virustotalApiKey: process.env.VIRUSTOTAL_API_KEY ?? "",
   abuseIpdbApiKey: process.env.ABUSEIPDB_API_KEY ?? "",
   urlscanApiKey: process.env.URLSCAN_API_KEY ?? "",
-  ipinfoToken: process.env.IPINFO_TOKEN ?? "",
+  ipinfoToken: process.env.IPINFO_API_KEY ?? process.env.IPINFO_TOKEN ?? "",
   externalLlmApiKey: process.env.EXTERNAL_LLM_API_KEY ?? "",
 } as const;

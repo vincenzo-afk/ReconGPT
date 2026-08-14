@@ -15,6 +15,13 @@
       "when": 1786709065914,
       "tag": "0001_amazing_talos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786713543690,
+      "tag": "0002_handy_black_knight",
+      "breakpoints": true
     }
   ]
 }

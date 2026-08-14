@@ -7,7 +7,7 @@ const options = { dorkIntensity: "balanced" as const };
 describe("ReconGPT passive module routing", () => {
   it("selects passive web, archive, exposure, and provider modules for a domain", () => {
     const ids = modulesFor(parseTarget("example.com"), options).map(module => module.id);
-    expect(ids).toEqual(expect.arrayContaining(["crt-subdomains", "dns-posture", "wayback", "public-web-surface", "exposure-research", "routed-prefix", "shodan", "virustotal"]));
+    expect(ids).toEqual(expect.arrayContaining(["crt-subdomains", "dns-posture", "dns-crosscheck", "wayback", "common-crawl", "public-web-surface", "exposure-research", "routed-prefix", "shodan", "virustotal"]));
   });
 
   it("adds document metadata for URL targets without treating it as a domain-only module", () => {
