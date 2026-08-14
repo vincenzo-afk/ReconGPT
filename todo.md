@@ -1,0 +1,24 @@
+# Project TODO
+
+- [x] Build a secure server-side API key configuration layer for Shodan, VirusTotal, AbuseIPDB, urlscan.io, IPinfo, and a user-supplied Groq/OpenAI LLM key; never expose keys in the browser.
+- [x] Create database schema and query helpers for recon runs, module events, normalized entities, entity relationships, analyst settings, and persisted reports.
+- [x] Implement a server-sent event stream for real-time recon module status and finding events without client polling.
+- [x] Build normalized target parsing and input validation for domains, IPv4/IPv6 addresses, email addresses, usernames, company names, URLs, phone numbers, and ASNs.
+- [x] Implement passive domain and infrastructure modules: crt.sh subdomains, DNS A/AAAA/MX/NS/TXT/SPF/DKIM/DMARC, RDAP/WHOIS, reverse DNS, TLS certificate details, HTTP headers, technology detection, and CDN/WAF signals.
+- [x] Implement IP intelligence modules: IPinfo geolocation/ASN, AbuseIPDB reputation, Shodan services and banners, VirusTotal reputation, reverse PTR, and passive BGP/netblock intelligence.
+- [x] Implement identity modules: email DNS posture, conservative breach-index status, configurable username platform checks, public GitHub profile/repository/gist discovery, and public social-profile search links.
+- [x] Implement passive web and document intelligence: Wayback URL history, robots/sitemap discovery, public search-dork generators, GitHub code-search links, exposed-document discovery links, and safe document metadata intake.
+- [x] Implement corporate intelligence modules: open corporate-registry links, careers technology cues, partner/vendor link discovery, trademark-research links, and organization relationship modeling.
+- [x] Implement AI analysis that converts verified findings into an evidence-based summary, risk score, recommendations, and suggested passive follow-ups without fabricating facts.
+- [x] Build terminal-style command bar and first-class natural-language AI chat input for starting and refining recon operations.
+- [x] Build live mission-control recon stream with module progress cards, status transitions, finding counters, timestamps, and graceful per-module failures.
+- [x] Build attack-surface dashboard with severity scoring, category breakdowns, evidence-first findings, and clear source attribution.
+- [x] Build filterable, click-to-expand force-directed entity graph for domains, IPs, emails, usernames, organizations, certificates, URLs, and relationships.
+- [x] Build findings explorer with responsive tables, detail drawers, evidence/source links, and category/severity filters.
+- [x] Build recon history with database persistence, target grouping, one-click reruns, and run-to-run finding comparison.
+- [x] Build settings panel with module toggles, dork-intensity control, secure key-status indicators, LLM provider/model selection, and operational safety copy.
+- [x] Build Markdown, JSON, and printable HTML report exports that cover target context, methodology, results, evidence, risk analysis, and provenance.
+- [x] Write unit tests for target validation, normalizers, risk scoring, entity relationships, report serialization, and module transformations.
+- [x] Run safe end-to-end recon tests only against authorized public test targets such as example.com; verify SSE delivery and UI behavior on desktop and mobile.
+- [ ] Transfer previously recovered provider credentials into the secure project secret settings; raw values remain deliberately absent from source control and the client.
+- [ ] Replace the legacy GitHub repository source with the rebuilt ReconGPT application, then commit and push it.
