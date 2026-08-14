@@ -20,5 +20,5 @@
 - [x] Build Markdown, JSON, and printable HTML report exports that cover target context, methodology, results, evidence, risk analysis, and provenance.
 - [x] Write unit tests for target validation, normalizers, risk scoring, entity relationships, report serialization, and module transformations.
 - [x] Run safe end-to-end recon tests only against authorized public test targets such as example.com; verify SSE delivery and UI behavior on desktop and mobile.
-- [ ] Transfer previously recovered provider credentials into the secure project secret settings; raw values remain deliberately absent from source control and the client.
-- [ ] Replace the legacy GitHub repository source with the rebuilt ReconGPT application, then commit and push it.
+- [x] Transfer previously recovered provider credentials into the secure project secret settings; raw values remain deliberately absent from source control and the client.
+- [x] Replace the legacy GitHub repository source with the rebuilt ReconGPT application, then commit and push it.
