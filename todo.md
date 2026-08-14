@@ -44,7 +44,7 @@
 - [x] Add normalized evidence-quality, freshness, corroboration, lead-status, and limitation metadata without breaking persisted run history.
 - [x] Surface new intelligence, provenance, evidence quality, and lead-review context in mission control, entity graph, and all report exports.
 - [x] Add deterministic tests for safety controls, normalizers, redaction, source fallback, new modules, and authorized end-to-end states.
-- [ ] Validate, checkpoint, and securely push the passive-OSINT expansion to GitHub.
+- [x] Validate, checkpoint, and securely push the passive-OSINT expansion to GitHub.
 - [x] Replace naive domain-root extraction with public-suffix-aware registrable-domain parsing for multi-part suffixes.
 - [x] Surface evidence quality, lead status, source counts, and limitations in entity-graph details.
 - [x] Add multi-part-suffix, credential-redaction, and authorized passive-expansion end-to-end regression coverage.
