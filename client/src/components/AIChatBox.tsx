@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { MarkdownContent } from "@/components/MarkdownContent";
 import { cn } from "@/lib/utils";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import Send from "lucide-react/dist/esm/icons/send";
@@ -262,9 +263,7 @@ export function AIChatBox({
                           : "bg-muted text-foreground"
                       )}
                     >
-                      <p className="whitespace-pre-wrap text-sm leading-6">
-                        {message.content}
-                      </p>
+                      {message.role === "assistant" ? <MarkdownContent content={message.content} className="chat-markdown" /> : <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>}
                     </div>
 
                     {message.role === "user" && (

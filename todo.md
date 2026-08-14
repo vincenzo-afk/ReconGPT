@@ -29,3 +29,12 @@
 - [x] Add user-facing source health, coverage-gap, and module-failure explanations to the mission-control workspace and report outputs.
 - [x] Add regression tests for failed persistence, large evidence sets, AI grounding, source fallback, and an authorized public target end-to-end recon run.
 - [x] Validate the repair, checkpoint it, and push the updated ReconGPT source to GitHub.
+- [x] Define and enforce public-only, authorized-target, robots-aware, rate-limited crawl boundaries with private-network and credential-path exclusions.
+- [x] Add free public search adapters and evidence-provenance normalization with clear source availability and rate-limit outcomes.
+- [x] Add a bounded same-origin public-web crawler that extracts indexable HTML metadata, links, public text signals, robots directives, and sitemap references without bypassing access controls.
+- [x] Add crawl-depth, page-budget, timeout, content-type, redirect, deduplication, and SSRF protections to the recon orchestration layer.
+- [x] Restore secure Markdown rendering for grounded AI responses and evidence summaries with sanitization, source links, readable code blocks, and structured headings.
+- [x] Surface search/crawl progress, pages reviewed, source provenance, robots decisions, and collection limits in mission control and reports.
+- [x] Add unit and end-to-end tests for robots exclusions, crawl bounds, link normalization, search-source fallbacks, Markdown sanitization, and rendered analyst responses.
+- [x] Validate, checkpoint, and push the public-web research and Markdown rendering enhancement.
+- [x] Make provider credential smoke checks deterministic in the standard test suite while retaining an opt-in live-provider validation path.

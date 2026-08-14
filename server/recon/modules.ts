@@ -1,5 +1,7 @@
 import { resolve4, resolve6, resolveMx, resolveNs, resolveTxt, resolveCname, resolvePtr } from "node:dns/promises";
 import tls from "node:tls";
+import { load } from "cheerio";
+import robotsParser from "robots-parser";
 import { ENV } from "../_core/env";
 import type { ModuleDefinition, ModuleResult, ReconFinding, ReconOptions, ReconTarget, RiskLevel } from "./types";
 
@@ -17,6 +19,59 @@ const hostOf = (target: ReconTarget) => target.hostname || target.domain || targ
 const isIPAddress = (value: string) => /^\d{1,3}(?:\.\d{1,3}){3}$/.test(value) || value.includes(":");
 const rootDomain = (hostname: string) => hostname.split(".").slice(-2).join(".");
 const query = (q: string) => `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+const CRAWLER_AGENT = "ReconGPT/2.1 (authorized-public-research)";
+const CRAWL_TIMEOUT_MS = 8_000;
+const MAX_HTML_BYTES = 360_000;
+const privateIpv4 = (value: string) => /^(?:0\.|10\.|127\.|169\.254\.|172\.(?:1[6-9]|2\d|3[0-1])\.|192\.0\.0\.|192\.0\.2\.|192\.168\.|198\.1[89]\.|198\.51\.100\.|203\.0\.113\.|224\.|23\d\.|24\d\.|25[0-5]\.)/.test(value);
+const privateIpv6 = (value: string) => /^(?:::1|fe[89ab]|f[cd]|::ffff:(?:0*:)?(?:127|10|192\.168)\.)/i.test(value);
+const blockedHost = (hostname: string) => hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".local") || hostname.endsWith(".internal") || hostname.endsWith(".test") || hostname.endsWith(".invalid");
+
+function normalizedHttpUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
+    parsed.hash = "";
+    return parsed;
+  } catch { return null; }
+}
+
+async function isSafePublicUrl(candidate: URL) {
+  if (blockedHost(candidate.hostname)) return false;
+  const addresses = await resolveHost(candidate.hostname);
+  return addresses.length > 0 && addresses.every(address => !privateIpv4(address) && !privateIpv6(address));
+}
+
+async function readLimited(response: Response, maxBytes = MAX_HTML_BYTES) {
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (total < maxBytes) {
+    const next = await reader.read();
+    if (next.done) break;
+    const take = Math.min(next.value.byteLength, maxBytes - total);
+    chunks.push(next.value.slice(0, take));
+    total += take;
+    if (take < next.value.byteLength) break;
+  }
+  reader.cancel().catch(() => undefined);
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  chunks.forEach(chunk => { bytes.set(chunk, offset); offset += chunk.byteLength; });
+  return new TextDecoder().decode(bytes);
+}
+
+function flattenDuckDuckGoTopics(topics: unknown, collected: Array<{ title: string; url: string; text: string }>) {
+  if (!Array.isArray(topics)) return;
+  for (const topic of topics) {
+    if (collected.length >= 12 || !topic || typeof topic !== "object") continue;
+    const item = topic as { FirstURL?: unknown; Text?: unknown; Topics?: unknown };
+    if (typeof item.FirstURL === "string" && typeof item.Text === "string") collected.push({ title: item.Text.slice(0, 180), url: item.FirstURL, text: item.Text.slice(0, 800) });
+    else flattenDuckDuckGoTopics(item.Topics, collected);
+  }
+}
+
+export const crawlerSafetyForTests = { normalizedHttpUrl, privateIpv4, privateIpv6, blockedHost };
 
 async function resolveHost(hostname: string): Promise<string[]> {
   if (isIPAddress(hostname)) return [hostname];
@@ -308,6 +363,67 @@ async function asnResearch(target: ReconTarget): Promise<ModuleResult> {
   return { findings: [record] };
 }
 
+async function publicSearchDiscovery(target: ReconTarget): Promise<ModuleResult> {
+  const subject = target.type === "company" ? target.normalized : hostOf(target);
+  const searchQuery = target.type === "company" ? `"${subject}"` : `site:${subject}`;
+  const payload = await fetchJson<{ AbstractText?: string; AbstractURL?: string; AbstractSource?: string; RelatedTopics?: unknown }>(`https://api.duckduckgo.com/?q=${encodeURIComponent(searchQuery)}&format=json&no_html=1&no_redirect=1`);
+  const related: Array<{ title: string; url: string; text: string }> = [];
+  flattenDuckDuckGoTopics(payload.RelatedTopics, related);
+  const direct = payload.AbstractText && payload.AbstractURL ? [{ title: String(payload.AbstractSource || "DuckDuckGo instant answer"), url: payload.AbstractURL, text: payload.AbstractText.slice(0, 800) }] : [];
+  const results = [...direct, ...related].slice(0, 12);
+  const record = finding("public-search", "Research", "Free public search discovery", `DuckDuckGo's no-key public instant-answer endpoint returned ${results.length} structured result(s) for an exact target-scoped query. This is a constrained discovery source, not a claim of complete search-engine coverage.`, { query: searchQuery, provider: "DuckDuckGo Instant Answer API", results, analystSearchLinks: [{ engine: "DuckDuckGo", url: `https://duckduckgo.com/?q=${encodeURIComponent(searchQuery)}` }, { engine: "Bing", url: `https://www.bing.com/search?q=${encodeURIComponent(searchQuery)}` }, { engine: "Google", url: query(searchQuery) }], limitation: "General web-index rankings, personal data, login-gated pages, and search-engine-only results may be absent. Use the linked public searches for analyst review." }, "low", results.length ? 78 : 62, `https://api.duckduckgo.com/?q=${encodeURIComponent(searchQuery)}`);
+  record.entities = results.slice(0, 12).map(result => ({ type: "url" as const, value: result.url, confidence: 72 }));
+  return { findings: [record], notices: results.length ? undefined : ["The free structured search source returned no direct result. Analyst-search links are provided as coverage pivots."] };
+}
+
+async function robotsAwareCrawl(target: ReconTarget, options: ReconOptions): Promise<ModuleResult> {
+  const start = normalizedHttpUrl(target.type === "url" ? target.normalized : `https://${hostOf(target)}`);
+  if (!start || !(await isSafePublicUrl(start))) return { findings: [], notices: ["Public-web crawl skipped because the target URL could not be validated as a public HTTP(S) destination."] };
+  const origin = start.origin;
+  const robotsUrl = new URL("/robots.txt", origin).toString();
+  let robotsText = "";
+  try { robotsText = await fetchText(robotsUrl, { headers: { "User-Agent": CRAWLER_AGENT }, signal: AbortSignal.timeout(CRAWL_TIMEOUT_MS) }); }
+  catch { return { findings: [], notices: ["Public-web crawl skipped because robots.txt was unavailable. ReconGPT uses strict robots-aware collection and does not crawl when policy cannot be read."] }; }
+  const robots = robotsParser(robotsUrl, robotsText);
+  const maxPages = options.dorkIntensity === "deep" ? 12 : options.dorkIntensity === "balanced" ? 6 : 3;
+  const maxDepth = options.dorkIntensity === "deep" ? 2 : 1;
+  const queue: Array<{ url: string; depth: number }> = [{ url: start.toString(), depth: 0 }];
+  const seen = new Set<string>();
+  const pages: Array<Record<string, unknown>> = [];
+  const skipped: Array<{ url: string; reason: string }> = [];
+  while (queue.length && pages.length < maxPages) {
+    const next = queue.shift()!;
+    if (seen.has(next.url)) continue;
+    seen.add(next.url);
+    const pageUrl = normalizedHttpUrl(next.url);
+    if (!pageUrl || pageUrl.origin !== origin || !(await isSafePublicUrl(pageUrl))) { skipped.push({ url: next.url, reason: "outside allowed public same-origin scope" }); continue; }
+    if (robots.isAllowed(pageUrl.toString(), CRAWLER_AGENT) === false) { skipped.push({ url: pageUrl.toString(), reason: "disallowed by robots.txt" }); continue; }
+    let response: Response;
+    try { response = await fetch(pageUrl, { redirect: "manual", headers: { "User-Agent": CRAWLER_AGENT, Accept: "text/html,application/xhtml+xml" }, signal: AbortSignal.timeout(CRAWL_TIMEOUT_MS) }); }
+    catch (error) { skipped.push({ url: pageUrl.toString(), reason: error instanceof Error ? error.message : "request failed" }); continue; }
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location"); const redirected = location ? normalizedHttpUrl(new URL(location, pageUrl).toString()) : null;
+      if (redirected && redirected.origin === origin) queue.unshift({ url: redirected.toString(), depth: next.depth }); else skipped.push({ url: pageUrl.toString(), reason: "redirect left the permitted same-origin scope" });
+      continue;
+    }
+    const contentType = response.headers.get("content-type") || "";
+    if (!response.ok || !/text\/html|application\/xhtml\+xml/i.test(contentType)) { skipped.push({ url: pageUrl.toString(), reason: `unsupported response (${response.status}, ${contentType || "unknown content type"})` }); continue; }
+    const html = await readLimited(response);
+    const $ = load(html);
+    const canonical = $("link[rel='canonical']").attr("href") || null;
+    const links = Array.from(new Set($("a[href]").map((_, element) => $(element).attr("href") || "").get().map(href => normalizedHttpUrl(new URL(href, pageUrl).toString())).filter((link): link is URL => Boolean(link && link.origin === origin)).map(link => link.toString()))).slice(0, 80);
+    const title = $("title").first().text().replace(/\s+/g, " ").trim().slice(0, 240);
+    const description = $("meta[name='description']").attr("content")?.replace(/\s+/g, " ").trim().slice(0, 480) || null;
+    const headings = $("h1,h2").map((_, element) => $(element).text().replace(/\s+/g, " ").trim()).get().filter(Boolean).slice(0, 12);
+    const textPreview = $("body").text().replace(/\s+/g, " ").trim().slice(0, 1_400);
+    pages.push({ url: pageUrl.toString(), status: response.status, title, description, canonical, headings, textPreview, outgoingSameOriginLinks: links.slice(0, 30), truncatedAtBytes: html.length >= MAX_HTML_BYTES });
+    if (next.depth < maxDepth) links.slice(0, 50).forEach(link => { if (!seen.has(link) && queue.length < maxPages * 8) queue.push({ url: link, depth: next.depth + 1 }); });
+  }
+  const record = finding("public-web-crawl", "Web Intelligence", "Robots-aware public-web crawl", `Reviewed ${pages.length}/${maxPages} publicly reachable same-origin HTML page(s) at maximum depth ${maxDepth}. The crawler only performs bounded GET requests, honors robots exclusions, and does not authenticate, submit forms, or follow cross-origin links.`, { startUrl: start.toString(), crawlPolicy: { userAgent: CRAWLER_AGENT, robotsUrl, maxPages, maxDepth, maxHtmlBytesPerPage: MAX_HTML_BYTES, concurrency: 1, allowedOrigin: origin, denied: ["private or reserved network destinations", "cross-origin redirects and links", "authentication flows", "form submission", "non-HTML content"] }, pages, skipped: skipped.slice(0, 60), skippedCount: skipped.length, remainingQueueCount: queue.length, limitation: "This is a bounded public HTML sample, not an exhaustive site map or Internet-wide collection." }, "low", pages.length ? 88 : 65, start.toString());
+  record.entities = pages.map(page => ({ type: "url" as const, value: String(page.url), confidence: 92 }));
+  return { findings: [record], notices: skipped.length ? [`Crawl skipped ${skipped.length} URL(s); see the finding for robots, scope, response-type, and request-failure reasons.`] : undefined };
+}
+
 export const MODULES: ModuleDefinition[] = [
   { id: "crt-subdomains", label: "Certificate Transparency", category: "Domain", appliesTo: ["domain", "url"], execute: crtSh },
   { id: "dns-posture", label: "DNS & Mail Posture", category: "Domain", appliesTo: ["domain", "url", "email"], execute: dnsRecords },
@@ -324,6 +440,8 @@ export const MODULES: ModuleDefinition[] = [
   { id: "urlscan", label: "urlscan.io History", category: "Web Intelligence", appliesTo: ["domain", "url"], requiresKey: "urlscan", execute: urlscan },
   { id: "wayback", label: "Wayback History", category: "Historical", appliesTo: ["domain", "url"], execute: wayback },
   { id: "common-crawl", label: "Common Crawl Index", category: "Historical", appliesTo: ["domain", "url"], execute: commonCrawl },
+  { id: "public-search", label: "Free Public Search", category: "Research", appliesTo: ["domain", "url", "company"], execute: publicSearchDiscovery },
+  { id: "public-web-crawl", label: "Robots-aware Web Crawl", category: "Web Intelligence", appliesTo: ["domain", "url"], execute: robotsAwareCrawl },
   { id: "research-dorks", label: "Research Query Builder", category: "Research", appliesTo: ["domain", "url", "company"], execute: dorkBuilder },
   { id: "public-web-surface", label: "Public Web Surface", category: "Web Intelligence", appliesTo: ["domain", "url"], execute: publicWebSurface },
   { id: "document-metadata", label: "Document HTTP Metadata", category: "Document Intelligence", appliesTo: ["url"], execute: documentMetadata },
