@@ -16,6 +16,28 @@ export function calculateRisk(findings: ReconFinding[]) {
   return { score, level: score >= 72 ? "critical" as const : score >= 48 ? "high" as const : score >= 20 ? "medium" as const : "low" as const };
 }
 
+function metadataSourceCount(finding: ReconFinding) {
+  const listed = Array.isArray(finding.data.sources) ? finding.data.sources.length : 0;
+  const linked = finding.sourceUrl ? 1 : 0;
+  return Math.max(listed, linked, finding.sourceCount || 0);
+}
+
+export function normalizeEvidenceMetadata(finding: ReconFinding, collectedAt = new Date().toISOString()): ReconFinding {
+  const leadModule = ["research-dorks", "exposure-research", "public-advisory-pivots", "defensive-brand-leads", "phone-research", "corporate-research", "asn-research"].includes(finding.moduleId);
+  const evidenceQuality = finding.evidenceQuality || (leadModule ? "lead" : finding.sourceUrl ? "direct" : "context");
+  const defaultLimitation = evidenceQuality === "lead"
+    ? "This is an analyst-review lead, not verified attribution, exposure, ownership, or exploitability."
+    : "This is a passive, point-in-time public-source observation and may be incomplete, stale, rate-limited, or scoped differently by the source.";
+  return {
+    ...finding,
+    evidenceQuality,
+    leadStatus: finding.leadStatus || (evidenceQuality === "lead" ? "review" : "verified"),
+    collectedAt: finding.collectedAt || collectedAt,
+    sourceCount: metadataSourceCount(finding),
+    limitations: finding.limitations?.length ? finding.limitations : [defaultLimitation],
+  };
+}
+
 function safeSummary(target: string, findings: ReconFinding[], score: number) {
   const categories = Array.from(new Set(findings.map(item => item.category)));
   const elevated = findings.filter(item => item.severity !== "low");
@@ -23,7 +45,7 @@ function safeSummary(target: string, findings: ReconFinding[], score: number) {
 }
 
 export function groundedAnalysis(draft: string, target: string, findings: ReconFinding[], coverage: ModuleCoverage[], score: number) {
-  const directEvidence = findings.slice(0, 12).map(item => `- **${item.title}** (${item.category}, ${item.severity}, ${item.confidence}% confidence)${item.sourceUrl ? ` — ${item.sourceUrl}` : ""}`).join("\n") || "- No verified passive evidence records were returned.";
+  const directEvidence = findings.slice(0, 12).map(item => `- **${item.title}** (${item.category}; ${item.evidenceQuality || "context"}; ${item.leadStatus || "verified"}; ${item.confidence}% confidence)${item.sourceUrl ? ` — ${item.sourceUrl}` : ""}`).join("\n") || "- No verified passive evidence records were returned.";
   const unavailable = coverage.filter(item => item.status === "failed").map(item => `- **${item.label}:** ${item.error || "source unavailable"}`).join("\n") || "- No selected source reported an execution failure.";
   const noResult = coverage.filter(item => item.status === "no-findings").map(item => `- **${item.label}:** no evidence returned; this is not proof of absence.`).join("\n") || "- No selected source returned an empty result set.";
   const interpretation = findings.length ? `The ${score}/100 evidence score reflects the returned public records only. Patterns across independently sourced findings are analyst leads, not proof of ownership, intent, compromise, or exploitability.` : `No positive evidence was returned. This does not establish that ${target} is clean or that relevant public records do not exist.`;
@@ -54,11 +76,11 @@ export async function completeAnalysis(messages: AnalystMessage[], preferredMode
 }
 
 async function aiSummary(target: string, findings: ReconFinding[], score: number, coverage: ModuleCoverage[], preferredModel = "built-in") {
-  const compact = findings.slice(0, 40).map(item => ({ moduleId: item.moduleId, category: item.category, title: item.title, severity: item.severity, confidence: item.confidence, summary: item.summary, sourceUrl: item.sourceUrl, data: compactValue(item.data) }));
+  const compact = findings.slice(0, 40).map(item => ({ moduleId: item.moduleId, category: item.category, title: item.title, severity: item.severity, confidence: item.confidence, evidenceQuality: item.evidenceQuality, leadStatus: item.leadStatus, sourceCount: item.sourceCount, collectedAt: item.collectedAt, limitations: item.limitations, summary: item.summary, sourceUrl: item.sourceUrl, data: compactValue(item.data) }));
   let draft: string;
   try {
     draft = await completeAnalysis([
-        { role: "system", content: "You are ReconGPT's evidence-first OSINT analyst. Use only the supplied passive results. Never claim a source was searched, a fact is verified, or an absence is meaningful unless the coverage ledger supports it. Separate direct evidence from cautious inference. Name sources with direct evidence, explicitly list unavailable or failed modules, and treat no-findings as unknown rather than clean. Do not suggest exploitation, credential attacks, phishing, or intrusive scanning. Use concise Markdown sections: Executive assessment, Direct evidence, Coverage and gaps, Analyst follow-ups, Evidence limitations." },
+        { role: "system", content: "You are ReconGPT's evidence-first OSINT analyst. Use only the supplied passive results. Never claim a source was searched, a fact is verified, or an absence is meaningful unless the coverage ledger supports it. Preserve each record's evidenceQuality and leadStatus: review leads are not verified findings. Separate direct evidence from cautious inference. Name sources with direct evidence, explicitly list unavailable or failed modules, and treat no-findings as unknown rather than clean. Do not suggest exploitation, credential attacks, phishing, or intrusive scanning. Use concise Markdown sections: Executive assessment, Direct evidence, Coverage and gaps, Analyst follow-ups, Evidence limitations." },
         { role: "user", content: JSON.stringify({ target, evidenceScore: score, coverage, findings: compact }) },
       ], preferredModel);
   } catch {
@@ -143,8 +165,9 @@ export async function executeRecon({ userId, rawTarget, context, options, emit }
         const result = await module.execute(target, options);
         for (const notice of result.notices || []) await send("notice", notice, module.id);
         for (const item of result.findings) {
-          findings.push(item);
-          await send("finding", item.title, module.id, item);
+          const normalizedFinding = normalizeEvidenceMetadata(item);
+          findings.push(normalizedFinding);
+          await send("finding", normalizedFinding.title, module.id, normalizedFinding);
         }
         coverage.push({ moduleId: module.id, label: module.label, category: module.category, status: result.findings.length ? "completed" : "no-findings", findingCount: result.findings.length, notices: result.notices || [] });
         await send("completed", `${module.label} completed with ${result.findings.length} finding(s).`, module.id);

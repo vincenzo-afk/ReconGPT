@@ -3,6 +3,8 @@ export type TargetType = (typeof TARGET_TYPES)[number];
 
 export type RiskLevel = "low" | "medium" | "high" | "critical";
 export type EntityType = "domain" | "subdomain" | "ip" | "email" | "username" | "organization" | "url" | "certificate" | "asn" | "phone";
+export type EvidenceQuality = "direct" | "corroborated" | "context" | "lead";
+export type LeadStatus = "verified" | "review" | "unverified";
 
 export type ReconTarget = {
   raw: string;
@@ -36,6 +38,11 @@ export type ReconFinding = {
   severity: RiskLevel;
   confidence: number;
   sourceUrl?: string;
+  evidenceQuality?: EvidenceQuality;
+  leadStatus?: LeadStatus;
+  collectedAt?: string;
+  sourceCount?: number;
+  limitations?: string[];
   data: Record<string, unknown>;
   entities?: ReconEntityInput[];
   relationships?: RelationshipInput[];

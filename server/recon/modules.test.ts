@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { crawlerSafetyForTests, modulesFor } from "./modules";
+import { passiveExpansionSafetyForTests } from "./passiveExpansion";
 import { parseTarget } from "./target";
 
 const options = { dorkIntensity: "balanced" as const };
@@ -7,7 +8,12 @@ const options = { dorkIntensity: "balanced" as const };
 describe("ReconGPT passive module routing", () => {
   it("selects passive web, archive, exposure, and provider modules for a domain", () => {
     const ids = modulesFor(parseTarget("example.com"), options).map(module => module.id);
-    expect(ids).toEqual(expect.arrayContaining(["crt-subdomains", "dns-posture", "dns-crosscheck", "wayback", "common-crawl", "public-search", "public-web-crawl", "public-web-surface", "exposure-research", "routed-prefix", "shodan", "virustotal"]));
+    expect(ids).toEqual(expect.arrayContaining(["crt-subdomains", "dns-posture", "email-disclosure", "dns-crosscheck", "certificate-timeline", "wayback", "historical-web-change", "common-crawl", "public-search", "public-web-crawl", "public-web-surface", "exposure-research", "public-advisory-pivots", "defensive-brand-leads", "routed-prefix", "network-ownership-context", "shodan", "virustotal"]));
+  });
+
+  it("adds public supply-chain context for username targets without enabling private-repository collection", () => {
+    const ids = modulesFor(parseTarget("octocat"), options).map(module => module.id);
+    expect(ids).toEqual(expect.arrayContaining(["username-matrix", "github-supply-chain"]));
   });
 
   it("adds document metadata for URL targets without treating it as a domain-only module", () => {
@@ -29,5 +35,10 @@ describe("ReconGPT passive module routing", () => {
     expect(crawlerSafetyForTests.privateIpv6("::1")).toBe(true);
     expect(crawlerSafetyForTests.blockedHost("localhost")).toBe(true);
     expect(crawlerSafetyForTests.blockedHost("metadata.internal")).toBe(true);
+    expect(passiveExpansionSafetyForTests.blockedHost("service.local")).toBe(true);
+    expect(passiveExpansionSafetyForTests.privateIpv4("192.168.1.1")).toBe(true);
+    expect(passiveExpansionSafetyForTests.privateIpv6("fe80::1")).toBe(true);
+    expect(passiveExpansionSafetyForTests.rootDomain("api.eu.example.co.uk")).toBe("example.co.uk");
+    expect(passiveExpansionSafetyForTests.rootDomain("cdn.example.com.au")).toBe("example.com.au");
   });
 });

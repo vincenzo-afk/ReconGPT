@@ -4,6 +4,7 @@ import { load } from "cheerio";
 import robotsParser from "robots-parser";
 import { ENV } from "../_core/env";
 import type { ModuleDefinition, ModuleResult, ReconFinding, ReconOptions, ReconTarget, RiskLevel } from "./types";
+import { certificateTimeline, defensiveBrandLeads, emailDisclosureIntelligence, githubSupplyChain, historicalWebChange, networkOwnershipContext, publicAdvisoryPivots } from "./passiveExpansion";
 
 const TIMEOUT_MS = 12_000;
 const fetchText = async (url: string, init: RequestInit = {}) => {
@@ -427,18 +428,22 @@ async function robotsAwareCrawl(target: ReconTarget, options: ReconOptions): Pro
 export const MODULES: ModuleDefinition[] = [
   { id: "crt-subdomains", label: "Certificate Transparency", category: "Domain", appliesTo: ["domain", "url"], execute: crtSh },
   { id: "dns-posture", label: "DNS & Mail Posture", category: "Domain", appliesTo: ["domain", "url", "email"], execute: dnsRecords },
+  { id: "email-disclosure", label: "Email & Disclosure Posture", category: "Domain", appliesTo: ["domain", "url", "email"], execute: emailDisclosureIntelligence },
   { id: "dns-crosscheck", label: "DNS-over-HTTPS Cross-check", category: "Domain", appliesTo: ["domain", "url", "email"], execute: dnsCrosscheck },
   { id: "rdap-whois", label: "RDAP / WHOIS", category: "Domain", appliesTo: ["domain", "url"], execute: rdapWhois },
   { id: "tls-certificate", label: "TLS Certificate", category: "Infrastructure", appliesTo: ["domain", "url"], execute: tlsCertificate },
+  { id: "certificate-timeline", label: "Certificate Change Timeline", category: "Historical", appliesTo: ["domain", "url"], execute: certificateTimeline },
   { id: "http-fingerprint", label: "HTTP Fingerprint", category: "Infrastructure", appliesTo: ["domain", "url"], execute: httpFingerprint },
   { id: "ipinfo", label: "IPinfo Geo & ASN", category: "IP Intelligence", appliesTo: ["domain", "url", "ip"], requiresKey: "ipinfo", execute: passiveIpInfo },
   { id: "reverse-ptr", label: "Reverse DNS PTR", category: "IP Intelligence", appliesTo: ["domain", "url", "ip"], execute: ptrLookup },
   { id: "routed-prefix", label: "BGP Prefix & Owner", category: "IP Intelligence", appliesTo: ["domain", "url", "ip"], execute: routedPrefix },
+  { id: "network-ownership-context", label: "Routing & RPKI Context", category: "IP Intelligence", appliesTo: ["domain", "url", "ip"], execute: networkOwnershipContext },
   { id: "abuseipdb", label: "AbuseIPDB", category: "IP Intelligence", appliesTo: ["domain", "url", "ip"], requiresKey: "abuseipdb", execute: abuseIpdb },
   { id: "shodan", label: "Shodan Passive Services", category: "IP Intelligence", appliesTo: ["domain", "url", "ip"], requiresKey: "shodan", execute: shodan },
   { id: "virustotal", label: "VirusTotal Reputation", category: "Threat Intelligence", appliesTo: ["domain", "url", "ip"], requiresKey: "virustotal", execute: virusTotal },
   { id: "urlscan", label: "urlscan.io History", category: "Web Intelligence", appliesTo: ["domain", "url"], requiresKey: "urlscan", execute: urlscan },
   { id: "wayback", label: "Wayback History", category: "Historical", appliesTo: ["domain", "url"], execute: wayback },
+  { id: "historical-web-change", label: "Public Web Change Timeline", category: "Historical", appliesTo: ["domain", "url"], execute: historicalWebChange },
   { id: "common-crawl", label: "Common Crawl Index", category: "Historical", appliesTo: ["domain", "url"], execute: commonCrawl },
   { id: "public-search", label: "Free Public Search", category: "Research", appliesTo: ["domain", "url", "company"], execute: publicSearchDiscovery },
   { id: "public-web-crawl", label: "Robots-aware Web Crawl", category: "Web Intelligence", appliesTo: ["domain", "url"], execute: robotsAwareCrawl },
@@ -446,7 +451,10 @@ export const MODULES: ModuleDefinition[] = [
   { id: "public-web-surface", label: "Public Web Surface", category: "Web Intelligence", appliesTo: ["domain", "url"], execute: publicWebSurface },
   { id: "document-metadata", label: "Document HTTP Metadata", category: "Document Intelligence", appliesTo: ["url"], execute: documentMetadata },
   { id: "exposure-research", label: "Exposure Research Pivots", category: "Research", appliesTo: ["domain", "url"], execute: exposureResearch },
+  { id: "public-advisory-pivots", label: "Public Advisory Pivots", category: "Threat Intelligence", appliesTo: ["domain", "url", "company"], execute: publicAdvisoryPivots },
+  { id: "defensive-brand-leads", label: "Defensive Brand Leads", category: "Brand Intelligence", appliesTo: ["domain", "url", "company"], execute: defensiveBrandLeads },
   { id: "username-matrix", label: "Username Matrix", category: "Identity", appliesTo: ["username"], execute: usernameProfiles },
+  { id: "github-supply-chain", label: "GitHub Supply Chain", category: "Supply Chain", appliesTo: ["username"], execute: githubSupplyChain },
   { id: "email-context", label: "Email Posture", category: "Identity", appliesTo: ["email"], execute: emailPosture },
   { id: "corporate-research", label: "Corporate Pivots", category: "Corporate", appliesTo: ["company"], execute: corporateLinks },
   { id: "phone-research", label: "Phone Research Pivots", category: "Identity", appliesTo: ["phone"], execute: phoneResearch },

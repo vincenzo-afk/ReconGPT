@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import Network from "lucide-react/dist/esm/icons/network";
 import Search from "lucide-react/dist/esm/icons/search";
 
-export type GraphNode = { id: string; entityType: string; value: string; label: string; confidence: number };
+export type GraphEvidence = { evidenceQuality: "direct" | "corroborated" | "context" | "lead"; leadStatus: "verified" | "review" | "unverified"; sourceCount: number; collectedAt?: string; limitations: string[]; findingCount: number };
+export type GraphNode = { id: string; entityType: string; value: string; label: string; confidence: number; evidence?: GraphEvidence };
 export type GraphEdge = { id: string; sourceEntityId: string; targetEntityId: string; relationType: string };
 
 const nodeColors: Record<string, string> = { domain: "#33d6a6", subdomain: "#59a9ff", ip: "#fdad5f", email: "#c787ff", username: "#ff7fbb", organization: "#f7d65e", url: "#b7c2d2", certificate: "#62dcff", asn: "#ff8f70", phone: "#e1e7ef" };
@@ -43,7 +44,7 @@ export function ReconGraph({ nodes, edges }: { nodes: GraphNode[]; edges: GraphE
         </g>)}
       </svg>
       <div className="graph-legend">{types.map(type => <span key={type}><i style={{ backgroundColor: nodeColors[type] || "#a8b3c7" }} />{type}</span>)}</div>
-      <div className="graph-detail">{active ? <><span className="type-chip">{active.entityType}</span><strong>{active.label}</strong><code>{active.value}</code><p>{active.confidence}% confidence • click the node again to collapse.</p></> : <p>Select a node to inspect a verified entity. Filters reduce the displayed surface without changing the stored evidence.</p>}</div>
+      <div className="graph-detail">{active ? <><span className="type-chip">{active.entityType}</span><strong>{active.label}</strong><code>{active.value}</code><p>{active.confidence}% confidence • click the node again to collapse.</p>{active.evidence ? <div className="graph-evidence"><span className={`quality-${active.evidence.evidenceQuality}`}>{active.evidence.evidenceQuality}</span><span className={active.evidence.leadStatus === "review" ? "graph-review" : "graph-verified"}>{active.evidence.leadStatus}</span><p>{active.evidence.sourceCount} declared source reference(s) · {active.evidence.findingCount} linked finding(s)</p>{active.evidence.collectedAt ? <p>Freshness: {new Date(active.evidence.collectedAt).toLocaleString()}</p> : null}{active.evidence.limitations.length ? <p className="graph-limitations">Limitations: {active.evidence.limitations.join(" ")}</p> : null}</div> : <p className="graph-limitations">No linked provenance was preserved for this historic entity.</p>}</> : <p>Select a node to inspect evidence quality, review status, sources, freshness, and limitations. Filters reduce the displayed surface without changing stored evidence.</p>}</div>
     </div>}
   </section>;
 }

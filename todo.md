@@ -38,3 +38,13 @@
 - [x] Add unit and end-to-end tests for robots exclusions, crawl bounds, link normalization, search-source fallbacks, Markdown sanitization, and rendered analyst responses.
 - [x] Validate, checkpoint, and push the public-web research and Markdown rendering enhancement.
 - [x] Make provider credential smoke checks deterministic in the standard test suite while retaining an opt-in live-provider validation path.
+- [x] Extend passive email and disclosure intelligence with CAA, MTA-STS, TLS-RPT, BIMI, DNSSEC signals, and bounded `security.txt` discovery.
+- [x] Add source-backed certificate/domain timelines and bounded historical web-change comparisons.
+- [x] Add public software-supply-chain metadata, advisory-context correlation, network ownership/RPKI context, and defensive brand-lead research with strict evidence labels.
+- [x] Add normalized evidence-quality, freshness, corroboration, lead-status, and limitation metadata without breaking persisted run history.
+- [x] Surface new intelligence, provenance, evidence quality, and lead-review context in mission control, entity graph, and all report exports.
+- [x] Add deterministic tests for safety controls, normalizers, redaction, source fallback, new modules, and authorized end-to-end states.
+- [ ] Validate, checkpoint, and securely push the passive-OSINT expansion to GitHub.
+- [x] Replace naive domain-root extraction with public-suffix-aware registrable-domain parsing for multi-part suffixes.
+- [x] Surface evidence quality, lead status, source counts, and limitations in entity-graph details.
+- [x] Add multi-part-suffix, credential-redaction, and authorized passive-expansion end-to-end regression coverage.
