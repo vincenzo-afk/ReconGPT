@@ -1,0 +1,1 @@
+ALTER TABLE `analystSettings` ADD `communityControlsJson` mediumtext;

@@ -48,3 +48,19 @@
 - [x] Replace naive domain-root extraction with public-suffix-aware registrable-domain parsing for multi-part suffixes.
 - [x] Surface evidence quality, lead status, source counts, and limitations in entity-graph details.
 - [x] Add multi-part-suffix, credential-redaction, and authorized passive-expansion end-to-end regression coverage.
+- [x] Add consent, source-policy, sensitivity, redaction, and retention metadata for identity, social, and media evidence.
+- [x] Build a versioned, rate-bounded public username-presence catalogue with 100+ platform URL patterns and conservative status evidence.
+- [x] Add ownership/authorization-gated email posture research that excludes sign-up, password recovery, authentication, and verification flows.
+- [x] Add validated analyst-provided image metadata extraction with MIME and size limits, GPS redaction, and no database storage of original media.
+- [x] Add compliance-mode public social-profile adapters that expose only public/authorized metadata and never infer hidden contact data or identity.
+- [x] Add provider-allowlisted onion-index lead research that never opens, crawls, downloads, or stores onion content.
+- [x] Add disabled-by-default Discord and Telegram community integration scaffolding with selected-scope, consent, retention, pause, delete, and audit controls.
+- [x] Expose identity intelligence, consent, sensitivity/redaction, source provenance, and limitations in mission control, graph details, and exports.
+- [x] Add deterministic tests for platform normalization, collection limits, consent gates, metadata redaction, provider disabling, and community-scope enforcement.
+- [ ] Validate, checkpoint, and securely push the identity and social intelligence expansion to GitHub.
+- [x] Implement selected-scope community settings with retention, pause/resume, delete/purge, and audit-trail controls for Discord and Telegram scaffolding.
+- [x] Display consent basis, data sensitivity, retention, and limitations for identity-linked evidence in entity graph details.
+- [x] Add deterministic admin-gating and selected-community-scope enforcement regressions.
+- [x] Audit the completed identity and community intelligence release for functional, safety, and presentation gaps; resolve verified issues.
+- [x] Generate a production README from the verified ReconGPT codebase, including architecture, setup, module boundaries, and safe-use guidance.
+- [ ] Re-run release validation, save the completed backlog state, and securely push final source and documentation to GitHub.

@@ -1,5 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { sdk } from "../_core/sdk";
+import * as db from "../db";
+import { parseCommunityControls } from "./identitySafety";
 import { executeRecon } from "./service";
 import { reconRequestSchema } from "./target";
 
@@ -15,12 +17,13 @@ export function registerReconStream(app: Express) {
     res.on("close", () => { connected = false; });
     try {
       const user = await sdk.authenticateRequest(req);
-      const parsed = reconRequestSchema.safeParse({ target: req.query.target, context: req.query.context || "", dorkIntensity: req.query.dorkIntensity || "balanced", enabledModules: typeof req.query.modules === "string" ? req.query.modules.split(",").filter(Boolean) : undefined });
+      const parsed = reconRequestSchema.safeParse({ target: req.query.target, context: req.query.context || "", dorkIntensity: req.query.dorkIntensity || "balanced", enabledModules: typeof req.query.modules === "string" ? req.query.modules.split(",").filter(Boolean) : undefined, targetAuthorization: req.query.targetAuthorization, emailOwnershipConfirmed: req.query.emailOwnershipConfirmed, mediaAuthorizationConfirmed: req.query.mediaAuthorizationConfirmed, communityAdminConfirmed: req.query.communityAdminConfirmed });
       if (!parsed.success) {
         sendSse(res, { type: "failed", message: "Invalid recon request.", data: parsed.error.flatten(), timestamp: new Date().toISOString() });
         return res.end();
       }
-      await executeRecon({ userId: user.id, rawTarget: parsed.data.target, context: parsed.data.context, options: { dorkIntensity: parsed.data.dorkIntensity, enabledModules: parsed.data.enabledModules }, emit: event => { if (connected) sendSse(res, event); } });
+      const settings = await db.getAnalystSettings(user.id);
+      await executeRecon({ userId: user.id, rawTarget: parsed.data.target, context: parsed.data.context, options: { dorkIntensity: parsed.data.dorkIntensity, enabledModules: parsed.data.enabledModules, consent: { targetAuthorization: parsed.data.targetAuthorization, emailOwnershipConfirmed: parsed.data.emailOwnershipConfirmed, mediaAuthorizationConfirmed: parsed.data.mediaAuthorizationConfirmed, communityAdminConfirmed: parsed.data.communityAdminConfirmed }, communityControls: parseCommunityControls(settings?.communityControlsJson) }, emit: event => { if (connected) sendSse(res, event); } });
     } catch (error) {
       if (connected) sendSse(res, { type: "failed", message: error instanceof Error ? error.message : "Recon stream failed.", timestamp: new Date().toISOString() });
     } finally {

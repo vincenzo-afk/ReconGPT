@@ -2,9 +2,17 @@ export const TARGET_TYPES = ["domain", "ip", "email", "username", "company", "ur
 export type TargetType = (typeof TARGET_TYPES)[number];
 
 export type RiskLevel = "low" | "medium" | "high" | "critical";
-export type EntityType = "domain" | "subdomain" | "ip" | "email" | "username" | "organization" | "url" | "certificate" | "asn" | "phone";
+export type EntityType = "domain" | "subdomain" | "ip" | "email" | "username" | "organization" | "url" | "certificate" | "asn" | "phone" | "social_profile" | "media" | "location_signal" | "community";
 export type EvidenceQuality = "direct" | "corroborated" | "context" | "lead";
 export type LeadStatus = "verified" | "review" | "unverified";
+export type DataSensitivity = "public" | "contact" | "location" | "community";
+export type ConsentBasis = "public-source" | "target-authorization" | "email-ownership-confirmed" | "media-authorization-confirmed" | "community-admin-confirmed";
+export type RetentionClass = "standard" | "redacted" | "ephemeral";
+export type IdentityConsent = { targetAuthorization?: boolean; emailOwnershipConfirmed?: boolean; mediaAuthorizationConfirmed?: boolean; communityAdminConfirmed?: boolean };
+export type CommunityProvider = "discord" | "telegram";
+export type CommunityScope = { provider: CommunityProvider; scopeId: string; label: string };
+export type CommunityAuditEntry = { at: string; actorUserId: number; action: "configured" | "paused" | "resumed" | "purged"; scopeCount: number };
+export type CommunityControls = { connectorEnabled: boolean; paused: boolean; retentionDays: number; scopes: CommunityScope[]; audit: CommunityAuditEntry[]; lastPurgeAt?: string };
 
 export type ReconTarget = {
   raw: string;
@@ -43,6 +51,9 @@ export type ReconFinding = {
   collectedAt?: string;
   sourceCount?: number;
   limitations?: string[];
+  dataSensitivity?: DataSensitivity;
+  consentBasis?: ConsentBasis;
+  retentionClass?: RetentionClass;
   data: Record<string, unknown>;
   entities?: ReconEntityInput[];
   relationships?: RelationshipInput[];
@@ -75,6 +86,8 @@ export type ModuleDefinition = {
 export type ReconOptions = {
   dorkIntensity: "focused" | "balanced" | "deep";
   enabledModules?: string[];
+  consent?: IdentityConsent;
+  communityControls?: CommunityControls;
 };
 
 export type StreamEvent = {

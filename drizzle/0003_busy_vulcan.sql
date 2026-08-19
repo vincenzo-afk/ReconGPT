@@ -1,0 +1,1 @@
+ALTER TABLE `reconEntities` MODIFY COLUMN `entityType` enum('domain','subdomain','ip','email','username','organization','url','certificate','asn','phone','social_profile','media','location_signal','community') NOT NULL;

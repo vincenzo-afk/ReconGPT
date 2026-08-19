@@ -2,9 +2,12 @@ import { resolve4, resolve6, resolveMx, resolveNs, resolveTxt, resolveCname, res
 import tls from "node:tls";
 import { load } from "cheerio";
 import robotsParser from "robots-parser";
+import { getDomain } from "tldts";
 import { ENV } from "../_core/env";
 import type { ModuleDefinition, ModuleResult, ReconFinding, ReconOptions, ReconTarget, RiskLevel } from "./types";
 import { certificateTimeline, defensiveBrandLeads, emailDisclosureIntelligence, githubSupplyChain, historicalWebChange, networkOwnershipContext, publicAdvisoryPivots } from "./passiveExpansion";
+import { publicUsernamePresence } from "./usernamePresence";
+import { communityIntegrationStatus, consentBoundEmailPosture, onionIndexLeads, publicSocialProfileLinks } from "./identityModules";
 
 const TIMEOUT_MS = 12_000;
 const fetchText = async (url: string, init: RequestInit = {}) => {
@@ -18,7 +21,7 @@ const uid = () => crypto.randomUUID().slice(0, 16);
 const finding = (moduleId: string, category: string, title: string, summary: string, data: Record<string, unknown>, severity: RiskLevel = "low", confidence = 82, sourceUrl?: string): ReconFinding => ({ id: uid(), moduleId, category, title, summary, severity, confidence, data, sourceUrl });
 const hostOf = (target: ReconTarget) => target.hostname || target.domain || target.normalized;
 const isIPAddress = (value: string) => /^\d{1,3}(?:\.\d{1,3}){3}$/.test(value) || value.includes(":");
-const rootDomain = (hostname: string) => hostname.split(".").slice(-2).join(".");
+const rootDomain = (hostname: string) => getDomain(hostname, { allowPrivateDomains: false }) || hostname.toLowerCase();
 const query = (q: string) => `https://www.google.com/search?q=${encodeURIComponent(q)}`;
 const CRAWLER_AGENT = "ReconGPT/2.1 (authorized-public-research)";
 const CRAWL_TIMEOUT_MS = 8_000;
@@ -72,7 +75,7 @@ function flattenDuckDuckGoTopics(topics: unknown, collected: Array<{ title: stri
   }
 }
 
-export const crawlerSafetyForTests = { normalizedHttpUrl, privateIpv4, privateIpv6, blockedHost };
+export const crawlerSafetyForTests = { normalizedHttpUrl, privateIpv4, privateIpv6, blockedHost, rootDomain };
 
 async function resolveHost(hostname: string): Promise<string[]> {
   if (isIPAddress(hostname)) return [hostname];
@@ -454,8 +457,13 @@ export const MODULES: ModuleDefinition[] = [
   { id: "public-advisory-pivots", label: "Public Advisory Pivots", category: "Threat Intelligence", appliesTo: ["domain", "url", "company"], execute: publicAdvisoryPivots },
   { id: "defensive-brand-leads", label: "Defensive Brand Leads", category: "Brand Intelligence", appliesTo: ["domain", "url", "company"], execute: defensiveBrandLeads },
   { id: "username-matrix", label: "Username Matrix", category: "Identity", appliesTo: ["username"], execute: usernameProfiles },
+  { id: "username-presence", label: "Bounded Username Presence", category: "Identity", appliesTo: ["username"], execute: publicUsernamePresence },
+  { id: "public-social-profile-links", label: "Public Social Profile Links", category: "Social Intelligence", appliesTo: ["username"], execute: publicSocialProfileLinks },
   { id: "github-supply-chain", label: "GitHub Supply Chain", category: "Supply Chain", appliesTo: ["username"], execute: githubSupplyChain },
   { id: "email-context", label: "Email Posture", category: "Identity", appliesTo: ["email"], execute: emailPosture },
+  { id: "email-ownership-posture", label: "Consent-bound Email Posture", category: "Identity", appliesTo: ["email"], execute: consentBoundEmailPosture },
+  { id: "onion-index-leads", label: "Onion-index Research Lead", category: "Threat Intelligence", appliesTo: ["domain", "url", "company", "email"], execute: onionIndexLeads },
+  { id: "community-integration-status", label: "Community Integration Status", category: "Community Intelligence", appliesTo: ["domain", "company", "username"], execute: communityIntegrationStatus },
   { id: "corporate-research", label: "Corporate Pivots", category: "Corporate", appliesTo: ["company"], execute: corporateLinks },
   { id: "phone-research", label: "Phone Research Pivots", category: "Identity", appliesTo: ["phone"], execute: phoneResearch },
   { id: "asn-research", label: "ASN Research Pivots", category: "IP Intelligence", appliesTo: ["asn"], execute: asnResearch },

@@ -13,7 +13,12 @@ describe("ReconGPT passive module routing", () => {
 
   it("adds public supply-chain context for username targets without enabling private-repository collection", () => {
     const ids = modulesFor(parseTarget("octocat"), options).map(module => module.id);
-    expect(ids).toEqual(expect.arrayContaining(["username-matrix", "github-supply-chain"]));
+    expect(ids).toEqual(expect.arrayContaining(["username-matrix", "username-presence", "public-social-profile-links", "github-supply-chain"]));
+  });
+
+  it("adds consent-gated identity leads without enabling account-enumeration flows", () => {
+    expect(modulesFor(parseTarget("analyst@example.com"), options).map(module => module.id)).toContain("email-ownership-posture");
+    expect(modulesFor(parseTarget("example.com"), options).map(module => module.id)).toEqual(expect.arrayContaining(["onion-index-leads", "community-integration-status"]));
   });
 
   it("adds document metadata for URL targets without treating it as a domain-only module", () => {
@@ -35,6 +40,8 @@ describe("ReconGPT passive module routing", () => {
     expect(crawlerSafetyForTests.privateIpv6("::1")).toBe(true);
     expect(crawlerSafetyForTests.blockedHost("localhost")).toBe(true);
     expect(crawlerSafetyForTests.blockedHost("metadata.internal")).toBe(true);
+    expect(crawlerSafetyForTests.rootDomain("api.eu.example.co.uk")).toBe("example.co.uk");
+    expect(crawlerSafetyForTests.rootDomain("cdn.example.com.au")).toBe("example.com.au");
     expect(passiveExpansionSafetyForTests.blockedHost("service.local")).toBe(true);
     expect(passiveExpansionSafetyForTests.privateIpv4("192.168.1.1")).toBe(true);
     expect(passiveExpansionSafetyForTests.privateIpv6("fe80::1")).toBe(true);

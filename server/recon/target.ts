@@ -12,6 +12,10 @@ export const reconRequestSchema = z.object({
   context: z.string().trim().max(2000).optional().default(""),
   dorkIntensity: z.enum(["focused", "balanced", "deep"]).default("balanced"),
   enabledModules: z.array(z.string()).max(64).optional(),
+  targetAuthorization: z.enum(["true", "false"]).optional().transform(value => value === "true"),
+  emailOwnershipConfirmed: z.enum(["true", "false"]).optional().transform(value => value === "true"),
+  mediaAuthorizationConfirmed: z.enum(["true", "false"]).optional().transform(value => value === "true"),
+  communityAdminConfirmed: z.enum(["true", "false"]).optional().transform(value => value === "true"),
 });
 
 function normalizeHostname(value: string) {

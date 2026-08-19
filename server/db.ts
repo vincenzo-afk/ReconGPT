@@ -151,6 +151,7 @@ export async function saveAnalystSettings(values: typeof analystSettings.$inferI
       enabledModulesJson: values.enabledModulesJson,
       dorkIntensity: values.dorkIntensity,
       preferredModel: values.preferredModel,
+      communityControlsJson: values.communityControlsJson,
     },
   });
 }

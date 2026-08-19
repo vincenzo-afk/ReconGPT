@@ -54,7 +54,7 @@ export const reconEvents = mysqlTable("reconEvents", {
 export const reconEntities = mysqlTable("reconEntities", {
   id: varchar("id", { length: 32 }).primaryKey(),
   runId: varchar("runId", { length: 32 }).notNull().references(() => reconRuns.id),
-  entityType: mysqlEnum("entityType", ["domain", "subdomain", "ip", "email", "username", "organization", "url", "certificate", "asn", "phone"]).notNull(),
+  entityType: mysqlEnum("entityType", ["domain", "subdomain", "ip", "email", "username", "organization", "url", "certificate", "asn", "phone", "social_profile", "media", "location_signal", "community"]).notNull(),
   value: varchar("value", { length: 1024 }).notNull(),
   label: varchar("label", { length: 1024 }).notNull(),
   confidence: int("confidence").notNull().default(70),
@@ -77,6 +77,7 @@ export const analystSettings = mysqlTable("analystSettings", {
   enabledModulesJson: text("enabledModulesJson"),
   dorkIntensity: mysqlEnum("dorkIntensity", ["focused", "balanced", "deep"]).notNull().default("balanced"),
   preferredModel: varchar("preferredModel", { length: 128 }),
+  communityControlsJson: mediumtext("communityControlsJson"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
