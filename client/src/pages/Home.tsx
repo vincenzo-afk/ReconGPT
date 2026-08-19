@@ -6,6 +6,7 @@ import { downloadReport, markdownReport, printableHtmlReport } from "@/lib/repor
 import { trpc } from "@/lib/trpc";
 import { startLogin } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
+import "./casefile.css";
 import { toast } from "sonner";
 import Activity from "lucide-react/dist/esm/icons/activity";
 import Bot from "lucide-react/dist/esm/icons/bot";
@@ -159,7 +160,7 @@ export default function Home() {
 
   if (loading && !authWaitExceeded) return <div className="boot-screen"><CircleDotDashed className="spin" /><span>Booting analyst workspace…</span></div>;
 
-  return <main className="mission-shell">
+  return <main className="mission-shell casefile-shell">
     <aside className="mission-sidebar">
       <div className="brand"><span className="brand-mark"><Terminal size={18} /></span><div><strong>RECON<span>GPT</span></strong><small>intelligence station</small></div></div>
       <nav aria-label="Workspace sections">{nav.map(item => <button key={item} onClick={() => setActiveNav(item)} className={activeNav === item ? "nav-active" : ""}>{item === "Operations" ? <Activity size={17} /> : item === "Findings" ? <ShieldAlert size={17} /> : item === "Graph" ? <Network size={17} /> : item === "History" ? <History size={17} /> : <Settings size={17} />}<span>{item}</span>{item === "Operations" && isRunning ? <i className="pulse-dot" /> : null}</button>)}</nav>
@@ -169,7 +170,7 @@ export default function Home() {
 
     <section className="mission-main">
       <header className="topbar"><div><p className="eyebrow"><Wifi size={13} /> LIVE INTELLIGENCE WORKSPACE</p><h1>{activeNav === "Operations" ? "Mission control" : activeNav}</h1></div><div className="topbar-actions"><span className="clock">{new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>{activeRunId ? <span className="run-id">RUN {activeRunId}</span> : null}</div></header>
-      {activeNav === "Findings" && result ? <><SourceCoverage coverage={coverage} persistence={result.persistence} findings={findings} /><EvidenceQualityStrip findings={findings} /></> : null}
+      {activeNav === "Findings" && result ? <><SourceCoverage coverage={coverage} persistence={result.persistence} findings={findings} /><SourceHealthLedger findings={findings} /><EvidenceQualityStrip findings={findings} /></> : null}
 
       {activeNav === "Operations" ? <div className="workspace-grid">
         <section className="command-deck panel"><div className="panel-heading"><div><p className="eyebrow"><Command size={13} /> RECON COMMAND</p><h2>Launch a passive investigation</h2></div><span className="mode-badge">{isRunning ? "streaming" : "ready"}</span></div>
@@ -210,6 +211,15 @@ function SourceCoverage({ coverage, persistence, findings }: { coverage: ModuleC
   const search = findings.find(item => item.moduleId === "public-search")?.data as Record<string, unknown> | undefined;
   const searchResults = Array.isArray(search?.results) ? search.results.length : 0;
   return <section className="source-coverage" aria-label="Collection source coverage"><div><p className="eyebrow"><Wifi size={13} /> SOURCE COVERAGE</p><strong>{completed}/{coverage.length} sources returned evidence</strong><span>{empty} no-result · {failed} unavailable</span></div><p>{gaps.length ? gaps.slice(0, 3).map(item => `${item.label}: ${item.status === "failed" ? item.error || "unavailable" : item.notices.join(" ") || "no evidence returned"}`).join(" | ") : "All selected modules returned evidence. Public-source results remain point-in-time observations, not proof of absence or exhaustive coverage."}</p>{crawl ? <p className="source-crawl"><strong>PUBLIC CRAWL</strong> {reviewedPages}/{pageBudget || "—"} same-origin HTML page(s) reviewed at depth {maxDepth}; {skipped} URL(s) skipped by robots, scope, or response policy. No authentication, forms, private networks, or cross-origin traversal.</p> : null}{search ? <p className="source-crawl"><strong>FREE SEARCH</strong> {searchResults} structured public result(s) received; linked analyst pivots cover DuckDuckGo, Bing, and Google without screen-scraping search result pages.</p> : null}{persistence?.status === "degraded" ? <p className="source-warning"><ShieldAlert size={14} /> Live result delivered; run-history storage was degraded. {persistence.warning || "Rerun if a persisted copy is required."}</p> : null}</section>;
+}
+
+function SourceHealthLedger({ findings }: { findings: Finding[] }) {
+  const policy = findings.find(item => item.moduleId === "public-policy-surface");
+  const structured = findings.find(item => item.moduleId === "structured-web-provenance");
+  const health = policy?.data?.sourceHealth as { checked?: number; available?: number; unavailable?: number; sources?: Array<{ label?: string; status?: string }> } | undefined;
+  const releases = structured?.data?.releaseSignals as Array<{ label?: string; value?: string }> | undefined;
+  if (!health && !releases?.length) return null;
+  return <section className="source-health-ledger" aria-label="Source health and release signals"><div className="source-health-heading"><div><p className="eyebrow"><Activity size={13} /> SOURCE HEALTH</p><strong>Collection readiness, not a completeness claim</strong></div>{health ? <span>{health.available || 0}/{health.checked || 0} public endpoint(s) responded</span> : null}</div>{health?.sources?.length ? <div className="source-health-list">{health.sources.slice(0, 6).map((source, index) => <span key={`${source.label || "source"}-${index}`} className={`source-health-${source.status || "unknown"}`}><i />{source.label || "public endpoint"}<b>{source.status || "unknown"}</b></span>)}</div> : null}{releases?.length ? <div className="release-signal-list">{releases.slice(0, 5).map((signal, index) => <span key={`${signal.label || "signal"}-${index}`}><b>{signal.label || "release signal"}</b>{signal.value || "observed"}</span>)}</div> : null}<p>Endpoint availability and published release cues are observational. A missing response, policy, or release signal is not evidence that it does not exist.</p></section>;
 }
 
 function EvidenceQualityStrip({ findings }: { findings: Finding[] }) {

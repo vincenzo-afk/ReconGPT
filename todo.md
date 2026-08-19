@@ -64,3 +64,10 @@
 - [x] Audit the completed identity and community intelligence release for functional, safety, and presentation gaps; resolve verified issues.
 - [x] Generate a production README from the verified ReconGPT codebase, including architecture, setup, module boundaries, and safe-use guidance.
 - [x] Re-run release validation, save the completed backlog state, and securely push final source and documentation to GitHub.
+- [x] Redesign the mission-control interface as a handcrafted analyst casefile workbench with bespoke visual tokens, hierarchy, motion, empty states, and responsive behavior.
+- [x] Rebuild the investigation workflow, evidence inspector, graph details, coverage ledger, and report presentation around provenance and analyst decision-making.
+- [x] Add bounded public policy-document posture, package/release footprint, public code-organization posture, structured-web provenance, historical change, and source-health modules.
+- [x] Add safe analyst source controls, coverage and limitation disclosure, and privacy-aware data handling across exports.
+- [ ] Regenerate the README from final verified code and prepare GitHub description, exactly twenty topics, and a durable production homepage URL.
+- [x] Add deterministic tests for new passive-source collectors, safety budgets, source-health semantics, reports, and handcrafted UI states.
+- [ ] Validate the complete redesign and expansion, checkpoint it, update GitHub metadata, and securely push final source and documentation.

@@ -428,6 +428,133 @@ async function robotsAwareCrawl(target: ReconTarget, options: ReconOptions): Pro
   return { findings: [record], notices: skipped.length ? [`Crawl skipped ${skipped.length} URL(s); see the finding for robots, scope, response-type, and request-failure reasons.`] : undefined };
 }
 
+type PublicEndpointCheck = {
+  path: string;
+  status: number | null;
+  contentType: string | null;
+  redirected: boolean;
+  sameOrigin: boolean;
+  bytesRead: number;
+  preview?: string;
+  error?: string;
+};
+
+async function boundedSameOriginGet(origin: URL, path: string, includePreview = false): Promise<PublicEndpointCheck> {
+  const url = new URL(path, origin);
+  try {
+    const response = await fetch(url, {
+      redirect: "manual",
+      headers: { "User-Agent": "ReconGPT/2.3 (bounded-public-provenance)", Accept: "text/plain,text/html,application/json,application/xml,text/xml;q=0.9,*/*;q=0.2" },
+      signal: AbortSignal.timeout(CRAWL_TIMEOUT_MS),
+    });
+    const location = response.headers.get("location");
+    const redirected = response.status >= 300 && response.status < 400;
+    const redirectUrl = location ? normalizedHttpUrl(new URL(location, url).toString()) : null;
+    const sameOrigin = !redirected || Boolean(redirectUrl && redirectUrl.origin === origin.origin);
+    const contentType = response.headers.get("content-type");
+    const content = response.ok && includePreview ? await readLimited(response, 24_000) : "";
+    return {
+      path,
+      status: response.status,
+      contentType,
+      redirected,
+      sameOrigin,
+      bytesRead: content.length,
+      preview: content ? content.replace(/\s+/g, " ").trim().slice(0, 520) : undefined,
+    };
+  } catch (error) {
+    return { path, status: null, contentType: null, redirected: false, sameOrigin: true, bytesRead: 0, error: error instanceof Error ? error.message : "request failed" };
+  }
+}
+
+async function publicPolicySurface(target: ReconTarget, options: ReconOptions): Promise<ModuleResult> {
+  const base = normalizedHttpUrl(target.type === "url" ? target.normalized : `https://${hostOf(target)}`);
+  if (!base || !(await isSafePublicUrl(base))) {
+    return { findings: [], notices: ["Public policy checks were skipped because the target did not resolve to a permitted public web destination."] };
+  }
+  const budget = options.dorkIntensity === "focused" ? 3 : options.dorkIntensity === "deep" ? 6 : 5;
+  const policyEndpoints: Array<[string, boolean]> = [
+    ["/.well-known/security.txt", true],
+    ["/security.txt", true],
+    ["/robots.txt", true],
+    ["/sitemap.xml", false],
+    ["/manifest.json", false],
+    ["/.well-known/assetlinks.json", false],
+  ];
+  const checks = await Promise.all(policyEndpoints.slice(0, budget).map(([path, preview]) => boundedSameOriginGet(base, path, preview)));
+  const reachable = checks.filter(check => check.status !== null && check.status >= 200 && check.status < 300 && check.sameOrigin);
+  const securityText = checks.find(check => check.path.includes("security.txt") && check.status === 200 && check.sameOrigin);
+  const record = finding(
+    "public-policy-surface",
+    "Web Intelligence",
+    "Public policy and release-signal surface",
+    `Checked ${checks.length} bounded, same-origin public policy or application-descriptor endpoint(s); ${reachable.length} responded successfully${securityText ? ", including a security.txt disclosure channel" : ""}.`,
+    {
+      origin: base.origin,
+      checks,
+      requestPolicy: {
+        maxRequests: budget,
+        methods: ["GET"],
+        redirects: "manual; cross-origin redirects are not followed",
+        excluded: ["authentication", "forms", "state-changing endpoints", "private/reserved destinations", "downloads", "directory enumeration"],
+      },
+      sourceHealth: {
+        attempted: checks.length,
+        successful: reachable.length,
+        unavailable: checks.filter(check => check.status === null).length,
+        restrictedOrRedirected: checks.filter(check => !check.sameOrigin || check.status === 401 || check.status === 403 || check.status === 429).length,
+      },
+      limitation: "Endpoint availability is a point-in-time public observation. Missing or inaccessible documents are not proof that a policy, disclosure process, or release practice does not exist.",
+    },
+    securityText ? "low" : "medium",
+    reachable.length ? 87 : 62,
+    base.toString(),
+  );
+  record.entities = [{ type: "url", value: base.origin, confidence: 96 }];
+  return { findings: [record], notices: checks.filter(check => check.status === 401 || check.status === 403 || check.status === 429).length ? ["Some public policy endpoints restricted automated access and were not retried."] : undefined };
+}
+
+function jsonLdSummary(value: unknown) {
+  const entries = Array.isArray(value) ? value : value && typeof value === "object" ? [value] : [];
+  return entries.slice(0, 24).map(entry => {
+    const record = entry as Record<string, unknown>;
+    const types = Array.isArray(record["@type"]) ? record["@type"] : [record["@type"]].filter(Boolean);
+    return { type: types.map(String).slice(0, 6), id: typeof record["@id"] === "string" ? record["@id"].slice(0, 240) : undefined, url: typeof record.url === "string" ? record.url.slice(0, 240) : undefined, sameAsCount: Array.isArray(record.sameAs) ? record.sameAs.length : 0 };
+  });
+}
+
+async function structuredWebProvenance(target: ReconTarget): Promise<ModuleResult> {
+  const base = normalizedHttpUrl(target.type === "url" ? target.normalized : `https://${hostOf(target)}`);
+  if (!base || !(await isSafePublicUrl(base))) return { findings: [], notices: ["Structured-web provenance was skipped because the target did not resolve to a permitted public web destination."] };
+  const response = await fetch(base, { redirect: "manual", headers: { "User-Agent": "ReconGPT/2.3 (bounded-structured-web)", Accept: "text/html,application/xhtml+xml" }, signal: AbortSignal.timeout(CRAWL_TIMEOUT_MS) });
+  if (!response.ok || !/text\/html|application\/xhtml\+xml/i.test(response.headers.get("content-type") || "")) return { findings: [], notices: [`Structured-web provenance was unavailable (${response.status}).`] };
+  const html = await readLimited(response, 180_000);
+  const $ = load(html);
+  const jsonLd = $("script[type='application/ld+json']").map((_, node) => {
+    try { return jsonLdSummary(JSON.parse($(node).text().slice(0, 40_000))); } catch { return []; }
+  }).get().flat();
+  const social = ["og:site_name", "og:title", "og:url", "twitter:site"].map(property => ({ property, content: $(`meta[property='${property}'],meta[name='${property}']`).attr("content")?.slice(0, 320) || null })).filter(item => item.content);
+  const releaseSignals = {
+    canonical: $("link[rel='canonical']").attr("href") || null,
+    manifest: $("link[rel='manifest']").attr("href") || null,
+    generator: $("meta[name='generator']").attr("content")?.slice(0, 240) || null,
+    icons: $("link[rel*='icon']").length,
+    versionedAssetSignals: $("script[src],link[href]").map((_, node) => $(node).attr("src") || $(node).attr("href") || "").get().filter(value => /[?&](v|ver|version|hash)=|\.[a-f0-9]{8,}\./i.test(value)).slice(0, 40),
+  };
+  const record = finding(
+    "structured-web-provenance",
+    "Web Intelligence",
+    "Structured-web provenance and release signals",
+    `Captured public structured-data, canonical, social-card, and release-descriptor signals from one bounded HTML response; ${jsonLd.length} JSON-LD summary object(s) were recognized.`,
+    { url: base.toString(), status: response.status, jsonLd, social, releaseSignals, bytesRead: html.length, limitation: "Only the initial public HTML response was read. Structured data is publisher-supplied and is not independently verified." },
+    "low",
+    86,
+    base.toString(),
+  );
+  record.entities = [{ type: "url", value: base.toString(), confidence: 96 }, ...jsonLd.filter(item => item.url).slice(0, 12).map(item => ({ type: "url" as const, value: String(item.url), confidence: 70 }))];
+  return { findings: [record] };
+}
+
 export const MODULES: ModuleDefinition[] = [
   { id: "crt-subdomains", label: "Certificate Transparency", category: "Domain", appliesTo: ["domain", "url"], execute: crtSh },
   { id: "dns-posture", label: "DNS & Mail Posture", category: "Domain", appliesTo: ["domain", "url", "email"], execute: dnsRecords },
@@ -450,6 +577,8 @@ export const MODULES: ModuleDefinition[] = [
   { id: "common-crawl", label: "Common Crawl Index", category: "Historical", appliesTo: ["domain", "url"], execute: commonCrawl },
   { id: "public-search", label: "Free Public Search", category: "Research", appliesTo: ["domain", "url", "company"], execute: publicSearchDiscovery },
   { id: "public-web-crawl", label: "Robots-aware Web Crawl", category: "Web Intelligence", appliesTo: ["domain", "url"], execute: robotsAwareCrawl },
+  { id: "public-policy-surface", label: "Public Policy & Release Signals", category: "Web Intelligence", appliesTo: ["domain", "url"], execute: publicPolicySurface },
+  { id: "structured-web-provenance", label: "Structured-Web Provenance", category: "Web Intelligence", appliesTo: ["domain", "url"], execute: structuredWebProvenance },
   { id: "research-dorks", label: "Research Query Builder", category: "Research", appliesTo: ["domain", "url", "company"], execute: dorkBuilder },
   { id: "public-web-surface", label: "Public Web Surface", category: "Web Intelligence", appliesTo: ["domain", "url"], execute: publicWebSurface },
   { id: "document-metadata", label: "Document HTTP Metadata", category: "Document Intelligence", appliesTo: ["url"], execute: documentMetadata },
