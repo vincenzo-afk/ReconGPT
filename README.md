@@ -7,7 +7,7 @@
 [![Transport](https://img.shields.io/badge/live%20updates-server--sent%20events-9fe8d6.svg)](#the-data-path)
 [![UI](https://img.shields.io/badge/interface-React%2019-9fe8d6.svg)](#technology-notes)
 
-**[Browse the source](https://github.com/vincenzo-afk/ReconGPT)** · **[Report a defect](https://github.com/vincenzo-afk/ReconGPT/issues)** · **[Request a change](https://github.com/vincenzo-afk/ReconGPT/issues)**
+**[Open ReconGPT](https://recon-gpt.vercel.app)** · **[Browse the source](https://github.com/vincenzo-afk/ReconGPT)** · **[Report a defect](https://github.com/vincenzo-afk/ReconGPT/issues)** · **[Request a change](https://github.com/vincenzo-afk/ReconGPT/issues)**
 
 ---
 
@@ -313,7 +313,7 @@ This call reaches configured providers. Do not run it in an unapproved environme
 
 ## <a name="deployment"></a>Deployment
 
-ReconGPT ships without a Dockerfile or external-platform deployment manifest. Its production path is the Node build already declared in `package.json`: install dependencies, inject the server environment, apply migrations, build the Vite client and bundled Node server, then start the process.
+ReconGPT is available at **[recon-gpt.vercel.app](https://recon-gpt.vercel.app)**. The Vercel production path builds the Vite client into `dist/public` and bundles the Express/tRPC application as an ESM serverless function. The function entrypoint is deliberately thin; the generated bundle contains the local API dependency graph while Vercel owns static-file delivery.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -322,7 +322,7 @@ NODE_OPTIONS='--max-old-space-size=768' pnpm build
 NODE_ENV=production pnpm start
 ```
 
-The runtime needs the database, OAuth, and optional provider-secret configuration from [Getting started](#getting-started). The development preview is intentionally not listed as a public homepage because it is not a durable shareable deployment. Publish the checkpoint through the project management interface before adding the resulting production URL to the repository metadata.
+For a Vercel build, run `pnpm build:vercel`; it produces the static client plus the `api/app.mjs` function bundle. The runtime still needs its database, OAuth, and optional provider-secret configuration from [Getting started](#getting-started). Configure those values as encrypted production environment variables in the Vercel project; they are intentionally never committed to this repository. The deployed public module catalogue is checked as a production health signal after each release.
 
 ---
 
@@ -365,7 +365,8 @@ ReconGPT uses React, tRPC, Drizzle ORM, Vite, Vitest, and the public-source serv
 
 <p align="center">
   <a href="#contents">Back to top</a> ·
-  <a href="https://github.com/vincenzo-afk/ReconGPT">GitHub</a>
+  <a href="https://github.com/vincenzo-afk/ReconGPT">GitHub</a> ·
+  <a href="https://recon-gpt.vercel.app">Live application</a>
 </p>
 
 <p align="center">Built with care by <strong>vincenzo-afk</strong>.</p>
