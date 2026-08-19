@@ -71,3 +71,7 @@
 - [ ] Regenerate the README from final verified code and prepare GitHub description, exactly twenty topics, and a durable production homepage URL.
 - [x] Add deterministic tests for new passive-source collectors, safety budgets, source-health semantics, reports, and handcrafted UI states.
 - [x] Validate the complete redesign and expansion, checkpoint it, update GitHub metadata, and securely push final source and documentation.
+- [x] Inspect Vercel access and deployment constraints for the ReconGPT Node/Express application.
+- [x] Prepare any required Vercel deployment configuration without exposing server credentials.
+- [ ] Deploy ReconGPT to Vercel, validate the stable production URL, and update GitHub homepage metadata.
+- [ ] Checkpoint and push the Vercel deployment configuration and delivery record.
