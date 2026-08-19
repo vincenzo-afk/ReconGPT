@@ -70,4 +70,4 @@
 - [x] Add safe analyst source controls, coverage and limitation disclosure, and privacy-aware data handling across exports.
 - [ ] Regenerate the README from final verified code and prepare GitHub description, exactly twenty topics, and a durable production homepage URL.
 - [x] Add deterministic tests for new passive-source collectors, safety budgets, source-health semantics, reports, and handcrafted UI states.
-- [ ] Validate the complete redesign and expansion, checkpoint it, update GitHub metadata, and securely push final source and documentation.
+- [x] Validate the complete redesign and expansion, checkpoint it, update GitHub metadata, and securely push final source and documentation.
