@@ -57,10 +57,10 @@
 - [x] Add disabled-by-default Discord and Telegram community integration scaffolding with selected-scope, consent, retention, pause, delete, and audit controls.
 - [x] Expose identity intelligence, consent, sensitivity/redaction, source provenance, and limitations in mission control, graph details, and exports.
 - [x] Add deterministic tests for platform normalization, collection limits, consent gates, metadata redaction, provider disabling, and community-scope enforcement.
-- [ ] Validate, checkpoint, and securely push the identity and social intelligence expansion to GitHub.
+- [x] Validate, checkpoint, and securely push the identity and social intelligence expansion to GitHub.
 - [x] Implement selected-scope community settings with retention, pause/resume, delete/purge, and audit-trail controls for Discord and Telegram scaffolding.
 - [x] Display consent basis, data sensitivity, retention, and limitations for identity-linked evidence in entity graph details.
 - [x] Add deterministic admin-gating and selected-community-scope enforcement regressions.
 - [x] Audit the completed identity and community intelligence release for functional, safety, and presentation gaps; resolve verified issues.
 - [x] Generate a production README from the verified ReconGPT codebase, including architecture, setup, module boundaries, and safe-use guidance.
-- [ ] Re-run release validation, save the completed backlog state, and securely push final source and documentation to GitHub.
+- [x] Re-run release validation, save the completed backlog state, and securely push final source and documentation to GitHub.
