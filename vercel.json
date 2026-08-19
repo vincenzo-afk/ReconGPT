@@ -5,7 +5,7 @@
   "buildCommand": "pnpm build:vercel",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/index.cjs": {
+    "api/index.js": {
       "includeFiles": "api/app.cjs"
     }
   },
