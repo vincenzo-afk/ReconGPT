@@ -6,7 +6,7 @@
   "outputDirectory": "dist/public",
   "functions": {
     "api/index.js": {
-      "includeFiles": "api/app.cjs"
+      "includeFiles": "api/app.mjs"
     }
   },
   "rewrites": [
