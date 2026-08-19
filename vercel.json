@@ -2,8 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm build:client",
+  "buildCommand": "pnpm build:vercel",
   "outputDirectory": "dist/public",
+  "functions": {
+    "api/index.cjs": {
+      "includeFiles": "api/app.cjs"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
