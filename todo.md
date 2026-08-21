@@ -79,4 +79,4 @@
 - [x] Prepare a fact-grounded repository-polish proposal for documentation, CI, metadata, and rules.
 - [x] Apply approved local production-polish infrastructure and verify the README against the final codebase.
 - [x] Present any GitHub metadata or default-branch rule changes for explicit approval before applying them.
-- [ ] Checkpoint and push approved repository-polish changes under the requested author identity.
+- [x] Checkpoint and push approved repository-polish changes under the requested author identity.
