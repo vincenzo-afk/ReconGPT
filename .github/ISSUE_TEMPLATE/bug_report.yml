@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a reproducible ReconGPT defect without sensitive target data.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include provider keys, session data, personal data, or unredacted investigation results. For a potential vulnerability, do not open a public issue.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the observable defect and its analyst-facing impact.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Safe reproduction steps
+      description: Use an authorized public target or a redacted example. Include minimal steps.
+      placeholder: |
+        1. Open …
+        2. Select …
+        3. Observe …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser/OS, local or Vercel deployment, and the commit SHA when relevant.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed credentials, personal data, and unredacted target evidence.
+          required: true
+        - label: This report does not describe a security vulnerability or a bypass technique.
+          required: true
